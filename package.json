@@ -1,0 +1,31 @@
+{
+  "name": "minigolf",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "watch-js": "cmd /k watchify client/main.js -o public/javascripts/game.js -v -d"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "watchify": "*"
+  },
+  "dependencies": {
+    "body-parser": "~1.16.0",
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.6.0",
+    "eventemitter3": "^3.0.0",
+    "express": "~4.14.1",
+    "matter-js": "^0.12.0",
+    "morgan": "~1.7.0",
+    "pixi-display": "*",
+    "pixi-extra-filters": "*",
+    "pixi-filters": "^1.0.6",
+    "pixi.js": "*",
+    "pug": "^2.0.0-rc.2",
+    "serve-favicon": "~2.3.2",
+    "socket.io": "*",
+    "socket.io-client": "*",
+    "uuid": "^3.1.0"
+  }
+}

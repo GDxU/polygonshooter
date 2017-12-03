@@ -1,0 +1,32 @@
+{
+  "default":{
+    "base_folder":"default",
+    "content":{
+      "missing_texture":{
+        "texture":"missing.png"
+      },
+      "empty_texture":{
+        "texture":"empty.png"
+      },
+      "hidden":{
+        "texture":"hidden.png"
+      },
+      "tee":{
+        "texture":"tee.png"
+      },
+      "grass":{
+        "texture":"grass.png"
+      },
+      "hole":{
+        "texture":"hole.png"
+      },
+      "sand":{
+        "texture":"sand.png"
+      },
+      "wall":{
+        "texture":"wall.png"
+      }
+
+    }
+  }
+}

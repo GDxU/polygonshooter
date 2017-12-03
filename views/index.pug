@@ -1,0 +1,22 @@
+html
+  head
+    title minigolf
+    link(rel='stylesheet', href='/stylesheets/style.css')
+  body
+    div#main
+      div#header
+        p.title minigolf
+        div.separator
+      div.content
+        div#game-chat
+        div#stage
+      div#loading-overlay.overlay
+        div.loading-content
+          div.spinner
+            div.dot1
+            div.dot2
+      script.
+        //var I18N_DATA = !{I18N_DATA};
+        //var GAME_ID = "!{gameID}";
+        console.log("test");
+      script(src='/javascripts/game.js')

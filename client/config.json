@@ -1,0 +1,24 @@
+{
+  "ZOOM": {
+    "MAX": 3,
+    "MIN": 0.3,
+    "SENSIVITY": 0.1
+  },
+  "DEFAULT_FONT_FAMILY":"Impact",
+  "TABLE_ROTATION_SPEED":10,
+  "STACKING_THRESHOLD":30,
+  "KEY_MAPPING":{
+    "TURN":{"keyboard":[70],"mouse":[]},
+    "DRAW":{"keyboard":[68],"mouse":[]},
+    "MOUSE_LEFT":{"keyboard":[],"mouse":[0]},
+    "ROTATE_LEFT":{"keyboard":[81],"mouse":[]},
+    "ROTATE_RIGHT":{"keyboard":[69],"mouse":[]},
+    "FUNCTION_KEY":{"keyboard":[17],"mouse":[]},
+    "COPY":{"keyboard":[67],"mouse":[]},
+    "PASTE":{"keyboard":[86],"mouse":[]}
+  },
+  "PATHS":{
+    "RESOURCE_BASE":"resources",
+    "USERS_RESOURCES":"resources/users"
+  }
+}
