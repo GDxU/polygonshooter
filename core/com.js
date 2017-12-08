@@ -17,15 +17,48 @@ module.exports =
         return result;
     },
     NAMESPACES:{
-        GAME:"/game",
+        GAME: {
+            MINIGOLF: "/game"
+        },
         LOBBY:"/lobby"
     },
     PROTOCOL: {
-        GAME: {
-            TO_CLIENT: {
-                MAP: "MAP"
+        GENERAL:{
+            TO_CLIENT:{
+                ERROR:"ERROR",
+                RESPONSE_CLIENT_ACCEPTED: "RESPONSE_CLIENT_ACCEPTED",
+                INIT_DATA: "INIT_GAME",
+                UPDATE_STATE: "UPDATE_STATE",
+                CLIENT_CONNECTED: "CLIENT_CONNECTED",
+                CLIENT_DISCONNECTED: "CLIENT_DISCONNECTED",
+                CLIENT_VALUE_UPDATE: "CLIENT_VALUE_UPDATE",
+                CLIENT_VALUE_UPDATE_REJECTED: "CLIENT_VALUE_UPDATE_REJECTED"
             },
-            TO_SERVER: {}
+            TO_SERVER:{
+                ERROR:"ERROR",
+                SEND_STATE: "SEND_STATE",
+                CLIENT_VALUE_UPDATE:"CLIENT_VALUE_UPDATE"
+            }
+        },
+        GAME: {
+            MINIGOLF: {
+                TO_CLIENT: {
+                    MAP: "MAP",
+
+                },
+                TO_SERVER: {
+                }
+            }
+        },
+        MODULES:{
+            CHAT:{
+                TO_CLIENT: {
+                    CHAT_MSG:"CHAT_MSG"
+                },
+                TO_SERVER: {
+                    CHAT_MSG:"CHAT_MSG"
+                }
+            }
         }
     }
 };

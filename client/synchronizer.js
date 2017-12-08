@@ -41,16 +41,28 @@ module.exports = Synchronizer;*/
 
 
 const Ticks = require('./../core/ticks.json');
-var Packages = require("./../core/com");
-var UpdateQueue = require('./../core/updatequeue');
+const Packages = require("./../core/com");
+const UpdateQueue = require('./../core/updatequeue');
 
-var EventEmitter3 = require('eventemitter3');
+const EventEmitter3 = require('eventemitter3');
 
 //var GameState = require("./gamestate");
 
 //var EntityManager = require("./entitymanager");
 
-var EVT_NAME_REJECTED = "namerejected";
+const EVT_ON_CLIENT_VALUE_REJECTED = "onClientValueRejected";
+const EVT_ON_CLIENT_VALUE_UPDATE = "onClientValueUpdate";
+
+const EVT_ON_CLIENT_ACCEPTED = "onClientAccepted";
+const EVT_ON_INIT_GAME = "onInitGame";
+
+const EVT_ON_CLIENT_CONNECTED = "onClientConnected";
+const EVT_ON_CLIENT_DISCONNECTED = "onClientDisconnected";
+
+const EVT_ON_SERVER_ERROR = "onServerError";
+
+const EVT_ON_SERVER_UPDATE = "onServerUpdate";
+
 /**
  * Receives all data from the server and changed data from the client and distributes it.
  */
@@ -102,15 +114,39 @@ class Synchronizer extends EventEmitter3{
          */
         this.connectedServerID = "";
 
+
+        this._suppotedMessages = new Set();
     }
 
-    init(){
+    /**
+     * pass "TO_CLIENT" object of one section of the PROTOCOL from com.js
+     * @param msgObject TO_CLIENT{msgName:"msg"}
+     */
+    addSupportedMessages(msgObject){
+        let cur = [].concat(msgObject);
+        for(let curObj in cur) {
+            for (let k in msg) {
+                this._suppotedMessages.add(msg[k]);
+            }
+        }
+    }
+
+    removeSupportedMessages(msgObject){
+        let cur = [].concat(msgObject);
+        for(let curObj in cur) {
+            for (let k in msg) {
+                this._suppotedMessages.delete(msg[k]);
+            }
+        }
+    }
+
+    start(){
         if (this.socket){
             console.warn("synchronizer already initialized!");
             return;
         }
 
-        this.socket = require('socket.io-client').connect(Packages.NAMESPACES.GAME, {
+        this.socket = require('socket.io-client').connect(Packages.NAMESPACES.GAME.MINIGOLF, {
             query:"gameid="+GAME_ID
         });
         this._initHandlers();
@@ -127,7 +163,7 @@ class Synchronizer extends EventEmitter3{
         setInterval(function(){
             if(!this.updateQueue.updateRequired) return;
 
-            this.sendPackage(Packages.PROTOCOL.CLIENT.SEND_STATE,Packages.createEvent(
+            this.sendPackage(Packages.PROTOCOL.GAME.MINIGOLF.TO_SERVER.SEND_STATE,Packages.createEvent(
                 this.CLIENT_INFO.id,
                 this.updateQueue.popUpdatedData(),
                 this.CLIENT_INFO.token
@@ -144,32 +180,32 @@ class Synchronizer extends EventEmitter3{
      */
     _initHandlers(){
         // get clientdata of this client
-        this.socket.on(Packages.PROTOCOL.SERVER.RESPONSE_CLIENT_ACCEPTED, this._onClientAccepted.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.RESPONSE_CLIENT_ACCEPTED, this._onClientAccepted.bind(this));
 
         // receive data about the dame (after initialisation, or gamechange
-        this.socket.on(Packages.PROTOCOL.SERVER.INIT_GAME, this._onInitGame.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.INIT_DATA, this._onInitGame.bind(this));
 
         // receive game updates
-        this.socket.on(Packages.PROTOCOL.SERVER.UPDATE_STATE, this._onStateUpdate.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.UPDATE_STATE, this._onStateUpdate.bind(this));
 
         // another player connected
-        this.socket.on(Packages.PROTOCOL.SERVER.CLIENT_CONNECTED, this._onClientConnected.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_CONNECTED, this._onClientConnected.bind(this));
 
         // an client disconnects
-        this.socket.on(Packages.PROTOCOL.SERVER.CLIENT_DISCONNECTED, this._onClientDisconnected.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_DISCONNECTED, this._onClientDisconnected.bind(this));
 
         // a value of a client/player has changed
-        this.socket.on(Packages.PROTOCOL.SERVER.CLIENT_VALUE_UPDATE, this._onClientValueUpdate.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_VALUE_UPDATE, this._onClientValueUpdate.bind(this));
 
         // if chat message from server is received
-        this.socket.on(Packages.PROTOCOL.MODULES.CHAT.SERVER_CHAT_MSG, this._onChatMessageReceived.bind(this));
+        this.socket.on(Packages.PROTOCOL.MODULES.CHAT.TO_CLIENT.CHAT_MSG, this._onChatMessageReceived.bind(this));
 
         // if value reject from serveris received
-        this.socket.on(Packages.PROTOCOL.SERVER.CLIENT_VALUE_UPDATE_REJECTED, this._onClientValueUpdateRejected.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_VALUE_UPDATE_REJECTED, this._onClientValueUpdateRejected.bind(this));
 
         this.socket.on('disconnect', this._onDisconnect.bind(this));
 
-        this.socket.on(Packages.PROTOCOL.SERVER.ERROR,this._onServerError.bind(this));
+        this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR,this._onServerError.bind(this));
     }
 
     _remmoveHandlers(){
@@ -210,12 +246,14 @@ class Synchronizer extends EventEmitter3{
         this.connectedServerID = evt.data.serverID;
         this.CLIENT_INFO = evt.data.clientInfo;
         console.log("Clientdata received");
-        this.playerManager.initCurrentPlayer(this.CLIENT_INFO);
+       /* this.playerManager.initCurrentPlayer(this.CLIENT_INFO);
         this.gameTable.initCurrentPlayer(this.CLIENT_INFO);
 
         if(this.CLIENT_INFO.playerIndex <0 || this.CLIENT_INFO.color <0){
             this.gameManager.showSeatChooser();
-        }
+        }*/
+
+       this.emit(EVT_ON_CLIENT_ACCEPTED,evt.data.clientInfo);
 
         this._startUpdating();
         window.hideLoadingDialog();
@@ -223,15 +261,16 @@ class Synchronizer extends EventEmitter3{
 
     _onInitGame (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-        this.chatHandler.pushMessage(I18N.translate("load_game",evt.data.name,evt.data.creator),"system",evt.timeStamp);
-        this.gameManager.initGame(evt.data);
+       /* this.chatHandler.pushMessage(I18N.translate("load_game",evt.data.name,evt.data.creator),"system",evt.timeStamp);
+        this.gameManager.initGame(evt.data);*/
         this.lastGameStateUpdateEventTimeStamp=this.lastGameStateUpdateTimeStamp = new Date().getTime();
+        this.emit(EVT_ON_INIT_GAME,evt.data);
     }
 
     _onStateUpdate (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
         if(evt.timeStamp < this.lastGameStateUpdateEventTimeStamp) return;    // if update is old, do not apply it
-        var currentTime = new Date().getTime();
+        let currentTime = new Date().getTime();
         this.processServerUpdates(evt.data,currentTime-this.lastGameStateUpdateTimeStamp);
         this.lastGameStateUpdateEventTimeStamp = evt.timeStamp;
         this.lastGameStateUpdateTimeStamp = currentTime;
@@ -239,24 +278,28 @@ class Synchronizer extends EventEmitter3{
 
     _onClientConnected (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-        this.playerManager.addPlayers(evt.data);
+        //this.playerManager.addPlayers(evt.data);
+
+        this.emit(EVT_ON_CLIENT_CONNECTED,evt.data);
     }
 
     _onClientDisconnected (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-        this.playerManager.removePlayer(evt.data.id)
+       // this.playerManager.removePlayer(evt.data.id)
+        this.emit(EVT_ON_CLIENT_DISCONNECTED,evt.data);
     }
 
     _onClientValueUpdate (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-        this.playerManager.updatePlayerValue(evt.data.clientID,evt.data.changes);
+       // this.playerManager.updatePlayerValue(evt.data.clientID,evt.data.changes);
+        this.emit(EVT_ON_CLIENT_VALUE_UPDATE,evt.data);
     }
 
-    _onChatMessageReceived (evt) {
+    /*_onChatMessageReceived (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
         var from = this.playerManager.getPlayer(evt.data.clientID);
         this.chatHandler.pushMessage(evt.data.message,evt.data.type,evt.timeStamp, from);
-    }
+    */
 
     _onClientValueUpdateRejected (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
@@ -274,12 +317,14 @@ class Synchronizer extends EventEmitter3{
         alert(evt.data.reason);
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
 
-        if(evt.data.reason == Packages.PROTOCOL.GAME_SERVER_ERRORS.NO_FREE_SLOT_AVAILABLE){
+      /*  if(evt.data.reason == Packages.PROTOCOL.GAME_SERVER_ERRORS.NO_FREE_SLOT_AVAILABLE){
             // TODO: redirect to lobby
         }
         if(evt.data.reason == Packages.PROTOCOL.GAME_SERVER_ERRORS.GAME_NOT_FOUND){
             // TODO: redirect to lobby
-        }
+        }*/
+
+        this.emit(EVT_ON_SERVER_ERROR,evt.data);
 
         //TODO: redirect to lobby
         this._remmoveHandlers();
@@ -291,14 +336,9 @@ class Synchronizer extends EventEmitter3{
      * @private
      */
     _handleValueRejections(evt){
-
-        for(var i=0; i<evt.violations.length;i++) {
-            var reason = evt.violations[i];
-            switch (reason.key) {
-                case Packages.PROTOCOL.CLIENT_VALUE_UPDATE.NAME:
-                    this.emit(EVT_NAME_REJECTED, {reason: reason.reason});
-                    break;
-            }
+        for(let i=0; i<evt.violations.length;i++) {
+            let reason = evt.violations[i];
+            this.emit(EVT_ON_CLIENT_VALUE_REJECTED,reason);
         }
     }
 
@@ -309,28 +349,15 @@ class Synchronizer extends EventEmitter3{
      * @private
      */
     _vertifyServer(id){
-        return id && id == this.connectedServerID;
+        return id && id === this.connectedServerID;
     }
 
     sendPackage(type, msg){
         this.socket.emit(type,msg);
     }
 
-    sendChatMessage(msg){
-        this.socket.emit(
-            Packages.PROTOCOL.MODULES.CHAT.CLIENT_CHAT_MSG,
-            Packages.createEvent(this.CLIENT_INFO.id,{message:msg},this.CLIENT_INFO.token)
-        );
-    }
-
-    /**
-     * sends a message to the server which means, that one value of this client has changed
-     * key e.g. "color"
-     * value e.g. 0xFFFFFF
-     * @param {[{key,value}]}
-     */
-    sendPlayerUpdate(data){
-        this.sendPackage(Packages.PROTOCOL.CLIENT.CLIENT_VALUE_UPDATE,
+   /* sendEvent(evtType,data){
+        this.sendPackage(evtType,
             Packages.createEvent(
                 this.CLIENT_INFO.id,
                 data,
@@ -339,17 +366,55 @@ class Synchronizer extends EventEmitter3{
         );
     }
 
+    sendChatMessage(msg){
+        this.socket.emit(
+            Packages.PROTOCOL.MODULES.CHAT.TO_SERVER.CHAT_MSG,
+            Packages.createEvent(this.CLIENT_INFO.id,{message:msg},this.CLIENT_INFO.token)
+        );
+    }*/
+
+    /**
+     * sends a message to the server which means, that one value of this client has changed
+     * key e.g. "color"
+     * value e.g. 0xFFFFFF
+     * @param {[{key,value}]}
+     */
+   /* sendPlayerUpdate(data){
+        this.sendPackage(Packages.PROTOCOL.CLIENT.CLIENT_VALUE_UPDATE,
+            Packages.createEvent(
+                this.CLIENT_INFO.id,
+                data,
+                this.CLIENT_INFO.token
+            )
+        );
+    }*/
+
     /**
      * processes the batched updates, received from the server
      * @param updateData
      * @param timeSinceLastUpdate the time since the last update was received from the server
      */
     processServerUpdates(updateData,timeSinceLastUpdate){
-        for(var type in updateData){
+        this.emit(EVT_ON_SERVER_UPDATE,{
+            type:type,
+            updates:updateData,
+            timeSinceLastUpdate:timeSinceLastUpdate
+        });
+
+        for(let type in updateData){
             if(!updateData.hasOwnProperty(type)) continue;
 
-            var updates = updateData[type];
-            switch (type){
+            if(!this._suppotedMessages.has(type)) continue; // if message is not supported, continue
+
+            let updates = updateData[type];
+
+            this.emit(EVT_ON_SERVER_UPDATE+"_"+type,{
+                type:type,
+                updates:updates,
+                timeSinceLastUpdate:timeSinceLastUpdate
+            });
+
+            /*switch (type){
                 // an entity was added on the server, e.g. a new stack was created
                 case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_ENTITY_ADDED:
                     if(!updates[this.connectedServerID])break; //just handle events from the server
@@ -385,7 +450,7 @@ class Synchronizer extends EventEmitter3{
                     if(!updates[this.connectedServerID])break; //just handle events from the server
                     this.entityManager.removeEntity(updates[this.connectedServerID].removedEntities);//just the entityIDs are passed
                     break;
-            }
+            }*/
         }
     }
 
@@ -394,17 +459,17 @@ class Synchronizer extends EventEmitter3{
      * @param data
      * @private
      */
-    _batchHandleRejections(data){
+   /* _batchHandleRejections(data){
         if(!data){
             console.warn("rejections: no update data passed");
             return;
         }
-        for(var userID in data){
+        for(let userID in data){
             if(!data.hasOwnProperty(userID))continue;
-            var rejected =data[userID].rejected;
-            for(var i=0; i< rejected.length;i++){
-                var action = rejected[i].action;
-                var entityID = rejected[i].entity;
+            let rejected =data[userID].rejected;
+            for(let i=0; i< rejected.length;i++){
+                let action = rejected[i].action;
+                let entityID = rejected[i].entity;
                 this._handleRejection(userID,action,entityID);
             }
         }
@@ -412,7 +477,7 @@ class Synchronizer extends EventEmitter3{
 
     _handleRejection(userID,action,entityID){
         //TODO: implemetn if necessary
-    }
+    }*/
 
 }
 

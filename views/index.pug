@@ -1,12 +1,13 @@
 html
   head
-    title minigolf
+    title #{I18N_LAYOUT.title}
     link(rel='stylesheet', href='/stylesheets/style.css')
   body
     div#main
       div#header
-        p.title minigolf
+        p.title #{I18N_LAYOUT.title}
         div.separator
+        div#player-container
       div.content
         div#game-chat
         div#stage

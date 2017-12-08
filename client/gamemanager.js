@@ -10,6 +10,8 @@ const Synchronizer = require('./synchronizer');
 const MapManager = require('./mapmanager');
 const EntityManager = require('./entitymanager');
 
+const COM = require("./../core/com");
+
 class GameManager extends EventEmitter3{
 
     constructor(app) {
@@ -26,7 +28,7 @@ class GameManager extends EventEmitter3{
     start(){
         this.synchronizer.start();
 
-        this.synchronizer.on(this.synchronizer.EVTS.MAP,(map) => this.mapManager.onMapReceived(map));
+        this.synchronizer.on(COM.PROTOCOL.GAME.MINIGOLF.MAP,(map) => this.mapManager.onMapReceived(map));
 
 
       //  this.mapManager.addChild(this.entityManager);
