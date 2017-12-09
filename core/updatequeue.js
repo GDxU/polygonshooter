@@ -31,9 +31,9 @@ class UpdateQueue{
             return;
         }
 
-        var array = [].concat(data);
-        for(var i=0;i<array.length;i++) {
-            var updatedData = array[i];
+        let array = [].concat(data);
+        for(let i=0;i<array.length;i++) {
+            let updatedData = array[i];
             if (!this._queue[type]) {
                 this._queue[type] = {};
             }
@@ -43,12 +43,12 @@ class UpdateQueue{
             }
 
             // merge update data to current queue
-            for (var key in updatedData) {
+            for (let key in updatedData) {
                 // continue, if key==__mode, because this is just used to define how the data is pushed
-                if (!updatedData.hasOwnProperty(key) || key == "_mode") continue;
+                if (!updatedData.hasOwnProperty(key) || key === "_mode") continue;
 
                 if(updatedData._mode){
-                    var mode = updatedData._mode;
+                    let mode = updatedData._mode;
                     delete updatedData._mode;   // delete mode, we do not need to send it
 
                     switch(mode){
@@ -94,7 +94,7 @@ class UpdateQueue{
         // only send, when updates are available
         if(!this._queue._sendUpdateRequired) return null;
 
-        var toSend = this._queue;
+        let toSend = this._queue;
         delete toSend._sendUpdateRequired;
 
         this.flush();

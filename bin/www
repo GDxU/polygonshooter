@@ -8,7 +8,7 @@ var app = require('../app');
 var debug = require('debug')('minigolf:server');
 var http = require('http');
 
-var ServerManager = require('./../server/servergamemanager');
+var GeneralConnectionReceiver = require('./../server/generalconnectionreceiver');
 
 /**
  * Get port from environment and store in Express.
@@ -24,8 +24,11 @@ app.set('port', port);
 var server = http.createServer(app);
 var io = require('socket.io')(server);
 
-var serverManager = new ServerManager();
-serverManager.start(io);
+var generalConnectionReceiver = new GeneralConnectionReceiver();
+generalConnectionReceiver.start(io,{
+    //userManager:app._userManager,
+   // sessionMiddleware:app._SESSION_SOCKET_CONNECTION_MIDDLEWARE
+});
 
 
 /**

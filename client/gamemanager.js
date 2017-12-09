@@ -20,15 +20,16 @@ class GameManager extends EventEmitter3{
 
         this.on('resize',(d)=>{});
 
-        this.synchronizer = new Synchronizer();
+        this.synchronizer = new Synchronizer(COM.PROTOCOL.GAME.MINIGOLF.TO_CLIENT);
+        //this.synchronizer.addSupportedMessages();
+
         this.mapManager = new MapManager();
         this.entityManager = new EntityManager();
     }
 
     start(){
+        this.synchronizer.on("on"+COM.PROTOCOL.GAME.MINIGOLF.TO_CLIENT.MAP,(map) => this.mapManager.onMapReceived(map));
         this.synchronizer.start();
-
-        this.synchronizer.on(COM.PROTOCOL.GAME.MINIGOLF.MAP,(map) => this.mapManager.onMapReceived(map));
 
 
       //  this.mapManager.addChild(this.entityManager);

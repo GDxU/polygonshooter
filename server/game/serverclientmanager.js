@@ -6,9 +6,9 @@
 
 const Util = require('./../../core/util');
 const Ticks = require('./../../core/ticks.json');
-const SharedConfig = require('./../../core/sharedconfig.json');
+const SharedConfig = require('./../../core/sharedconfig');
 
-var BadwordsFilter = require('bad-words');
+const BadwordsFilter = require('bad-words');
 
 const uuidV1 = require('uuid/v1');
 
@@ -73,7 +73,7 @@ class ClientManager{
          * @type {boolean[]}
          */
         this.assignedPlayerIndexes= [];
-        for(var i=0; i< Ticks.MAX_PLAYERS;i++){
+        for(let i=0; i< Ticks.MAX_PLAYERS;i++){
             this.assignedPlayerIndexes.push(false);
         }
 
@@ -86,7 +86,6 @@ class ClientManager{
          */
         this.assignedNames = {};
 
-
         this._currentConnectionCount = 0;
 
         this.badWordsFilter = new BadwordsFilter();
@@ -96,14 +95,6 @@ class ClientManager{
         return this._currentConnectionCount;
     }
 
-    /*
-     assignments(){
-     return {
-     assignedPlayerIndexes: this.assignedPlayerIndexes,
-     assignedColors: this.assignedColors
-     }
-     }*/
-
     /**
      *  initializes this client on the server
      * @param socket
@@ -112,13 +103,11 @@ class ClientManager{
     _addClient(socket, clientInfo){
         // assign prefered color to client
         // if it is not assigned already, if it is assigned, he has to choose another color
-        if(typeof clientInfo.color == 'number' && clientInfo >=0  && !this.assignedColors[clientInfo.color] ){
+        if(typeof clientInfo.color === 'number' && clientInfo >=0  && !this.assignedColors[clientInfo.color] ){
             this.assignedColors[clientInfo.color] = socket.id;
         }else{
             clientInfo.color = -1;
         }
-
-
 
         if(clientInfo.playerIndex >=0){
             this.assignedPlayerIndexes[clientInfo.playerIndex] = clientInfo.playerIndex;
@@ -128,7 +117,6 @@ class ClientManager{
         // if the name is not unique, make it unique
         this.clients[socket.id].name = this.getAlternativeNameIfOccupied(this.clients[socket.id].name);
         this.assignedNames[this.clients[socket.id].name.toLowerCase()] = socket.id;
-        //   this.assignedNames[clientInfo.name.toLowerCase()] = socket.id;
     }
 
     doesClientExist(id){
@@ -136,7 +124,7 @@ class ClientManager{
     }
 
     verificateClient(id,token){
-        return token && this.clients[id].verification == token;
+        return token && this.clients[id].verification === token;
     }
 
     isClientReady(id){
@@ -167,7 +155,7 @@ class ClientManager{
             return "client_does_not_exist";
         }
 
-        var c =Util.parseColor(color);
+        let c =Util.parseColor(color);
 
         if(this.assignedColors[c]){
             console.log("color",c,"already chosen by",this.assignedColors[c],"cannot be chosen from",id);
@@ -177,7 +165,7 @@ class ClientManager{
         console.log("updated client",id," color:",color);
 
         // release old color
-        var oldColor = this.getClient(id).color;
+        let oldColor = this.getClient(id).color;
         if(oldColor >=0){
             delete this.assignedColors[oldColor];
         }
@@ -210,7 +198,7 @@ class ClientManager{
         }
 
         // release old index
-        var oldIndex = this.getClient(id).playerIndex;
+        let oldIndex = this.getClient(id).playerIndex;
         if(oldIndex >=0){
             this.assignedPlayerIndexes[oldIndex]=false;
         }
@@ -260,10 +248,10 @@ class ClientManager{
             return "name_already_occupied";
         }
 
-        var curClient = this.getClient(id);
-        var old = curClient.name;
+        let curClient = this.getClient(id);
+        let old = curClient.name;
 
-        if(old == name){
+        if(old === name){
             console.log("updateClientName: no change, now name equals old name");
             return "";
         }
@@ -289,10 +277,10 @@ class ClientManager{
      * @param except = usually, this is the newly connected sender.
      * @returns {Array} info about all already connected clients
      */
-    getAllPublicClientinfo(except){
-        var result = [];
-        for(var key in this.clients){
-            if(!this.clients.hasOwnProperty(key) || (except && key == except)) continue;
+    getAllPublicClientInfo(except){
+        let result = [];
+        for(let key in this.clients){
+            if(!this.clients.hasOwnProperty(key) || (except && key === except)) continue;
             result.push(this.clients[key].publicInfo);
         }
         return result;
@@ -309,7 +297,7 @@ class ClientManager{
             console.warn("id does not exist");
             return false;
         }
-        return this.admin == id; // && this.clients[id].vertification == vertification;
+        return this.admin === id; // && this.clients[id].vertification == vertification;
     }
 
     clientConnected(socket,clientInfo){
@@ -338,9 +326,9 @@ class ClientManager{
         this._currentConnectionCount = Object.keys(this.clients).length;
         console.log("disconnect: "+socket.id+" Users left: "+this._currentConnectionCount);
         // change addmin
-        if(this.admin == socket.id){
+        if(this.admin === socket.id){
             this.admin = null;
-            var keys = Object.keys(this.clients);
+            let keys = Object.keys(this.clients);
             if(keys.length > 0) {
                 this.admin = keys[0];
                 //   this._sendToClient(this.connections[this.admin].socket,Statics.PROTOCOL.CLIENT.USERINFO,{admin:true});
@@ -358,8 +346,8 @@ class ClientManager{
      * @returns {string} the uniq name
      */
     getAlternativeNameIfOccupied(name){
-        var result = name;
-        var i=1;
+        let result = name;
+        let i=1;
         while(this.assignedNames[result.toLowerCase()]){
             result = name+" ("+i+")";
             i++;
@@ -372,7 +360,7 @@ class ClientManager{
      * @returns {*}
      */
     getRandomName(i=0){
-        var result = RANDOM_NAMES[Math.floor(Math.random()*RANDOM_NAMES.length)];
+        let result = RANDOM_NAMES[Math.floor(Math.random()*RANDOM_NAMES.length)];
 
         if(i>5){    // if it is called mare then 5 times recursively, then combine two random names
             result = ADJECTIVES[Math.floor(Math.random()*RANDOM_NAMES.length)]+"-"+RANDOM_NAMES[Math.floor(Math.random()*RANDOM_NAMES.length)];
