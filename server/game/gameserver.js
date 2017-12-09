@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const Ticks = require('./../../core/ticks.json');
+const SharedConfig = require('./../../core/sharedconfig.json');
 
 const Packages = require('./../../core/com');
 const Util = require('./../../core/util');
@@ -12,14 +12,14 @@ const Rights = require('./../../core/rights');
 
 //const uuidV1 = require('uuid/v1');
 
-const UpdateQueue = require("./../../core/updatequeue");
+
 //const EntityServerManager = require('./entityservermanager');
 const ClientManager = require('./serverclientmanager');
 
 const BaseServer = require('./../baseserver');
 
 const EVT_ON_CLIENT_DISCONNECTED = "onClientDisconnected";
-const EVT_ON_CLIENT_CONNETED = "onClientConnected";
+const EAT_ON_CLIENT_CONNECTED = "onClientConnected";
 
 const EVT_ON_STATE_UPDATE_RECEIVED = "onStateUpdateReceived";
 const EVT_ON_STATE_UPDATE_RECEIVED_SEPERATOR = "_";
@@ -28,15 +28,15 @@ class GameServer extends BaseServer{
 
     constructor(io,gameID, maxPlayers){
         super(io,gameID);
-        this.maxPlayers = maxPlayers || Ticks.MAX_PLAYERS;
+        this.maxPlayers = maxPlayers || SharedConfig.MAX_PLAYERS;
 
         // be sure, the max player count is not bigger than possible
-        if(this.maxPlayers > Ticks.MAX_PLAYERS){
-            this.maxPlayers = Ticks.MAX_PLAYERS;
+        if(this.maxPlayers > SharedConfig.MAX_PLAYERS){
+            this.maxPlayers = SharedConfig.MAX_PLAYERS;
         }
 
         this.clientManager = new ClientManager();
-        this.updateQueue =  new UpdateQueue();
+
        // this.entityServerManager = new EntityServerManager(60,this.updateQueue,this.clientManager,this);
         //this.entityServerManager.on('afterUpdate',this._processReceivedUpdateQueue.bind(this));
 
@@ -45,9 +45,9 @@ class GameServer extends BaseServer{
          * and processed, before a physic engines step
          * @type {Array}
          */
-        this.receivedUpdateQueue = [];
+        //this.receivedUpdateQueue = []; // should now be done in clients
 
-        setInterval(this._sendEntityUpdates.bind(this), Ticks.SERVER_UPDATE_INTERVAL);
+
 
     //    this.entityServerManager.loadGame("mick","codewords"); //TODO nicht statisch machen und durch user triggern lassen
 
@@ -67,19 +67,6 @@ class GameServer extends BaseServer{
         }
     }
 
-    /**
-     * Broadcasts the recent updates to all clients,
-     * is called in an regular interval
-     * @private
-     */
-    _sendEntityUpdates(){
-        if(!this.updateQueue.updateRequired) return;
-        this._broadcast(Packages.PROTOCOL.GENERAL.TO_CLIENT.UPDATE_STATE,Packages.createEvent(
-            this.ID,
-            this.updateQueue.popUpdatedData()
-            )
-        );
-    }
 
     get currentConnectionCount(){
         return this.clientManager.currentConnectionCount;
@@ -128,7 +115,10 @@ class GameServer extends BaseServer{
 
         let newlyConnectedClient = this.clientManager.getClient(socket.id);
 
-        this.emit(EVT_ON_CLIENT_CONNETED,{
+        // add the client instance to the socket, so it is accesible in every module
+        socket.clientData = newlyConnectedClient;
+
+        this.emit(EAT_ON_CLIENT_CONNECTED,{
             socket:socket,
             client:newlyConnectedClient
         });
@@ -170,18 +160,6 @@ class GameServer extends BaseServer{
         );
 
 
-        // TEST INIT, should be in module
-        let path = require('path').join(appRoot,"public/maps","testmap"+".json");
-        this._currentMap = JSON.parse(require('fs').readFileSync(path).toString());
-        this._sendToClient(socket,
-            Packages.PROTOCOL.GAME.MINIGOLF.TO_CLIENT.MAP,
-            Packages.createEvent(this.ID,{
-                width:this._currentMap.map.width,
-                height:this._currentMap.map.height,
-                tilesize:this._currentMap.map.tilesize,
-                data:this._currentMap.map.data
-            })
-        );
     }
 
     /**
@@ -203,8 +181,6 @@ class GameServer extends BaseServer{
         }
 
         this.self.allSockets = Util.removeByValue(this.self.allSockets,this.socket);
-
-        //this.self.entityServerManager.releaseAllContraintsForUser(this.socket.id);
 
         this.self.emit(EVT_ON_CLIENT_DISCONNECTED,data,this.socket);
 
@@ -268,7 +244,9 @@ class GameServer extends BaseServer{
         }
 
         // the received updates are processes everytime before the engine is processed.
-        this.self.receivedUpdateQueue.push(evt.data);
+       // this.self.receivedUpdateQueue.push(evt.data);
+
+        this._processUpdates(evt.data);
     }
 
     /**
@@ -305,13 +283,13 @@ class GameServer extends BaseServer{
      * TODO: call somewhere in the MATTER.JS
      * @private
      */
-    processReceivedUpdateQueue(){
+   /* processReceivedUpdateQueue(){
         let currentQueue = this.receivedUpdateQueue;
         this.receivedUpdateQueue = [];
         for(let i=0; i< currentQueue.length;i++){
             this._processUpdates(currentQueue[i]);
         }
-    }
+    }*/
 
     /**
      * process the posted updates of all players

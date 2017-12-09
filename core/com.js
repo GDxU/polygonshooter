@@ -51,15 +51,6 @@ module.exports =
                 NAME:"NAME"
             }
         },
-        GAME: {
-            MINIGOLF: {
-                TO_CLIENT: {
-                    MAP: "MAP",
-                },
-                TO_SERVER: {
-                }
-            }
-        },
         MODULES:{
             CHAT:{
                 TO_CLIENT: {
@@ -68,6 +59,18 @@ module.exports =
                 TO_SERVER: {
                     CHAT_MSG:"CHAT_MSG"
                 }
+            },
+            MINIGOLF: {
+                MODULE_NAME:"MINIGOLF",
+                TO_CLIENT: {
+                    MAP: "MAP",
+                    ENTITY_ADDED:"ENTITY_ADDED"
+                },
+                TO_SERVER: {
+                }
+            },
+            ERRORS:{
+                MAP_DOES_NOT_EXIST:"MAP_DOES_NOT_EXIST"
             }
         }
     }

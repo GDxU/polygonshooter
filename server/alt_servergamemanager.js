@@ -14,8 +14,6 @@ const com = require('./../core/com');
 
 //const TILESIZE = 64;
 
-const MAP_DIRECTORY = "public/maps";
-
 var Engine = Matter.Engine,
     Runner = Matter.Runner,
     Composites = Matter.Composites,
@@ -23,7 +21,6 @@ var Engine = Matter.Engine,
     MouseConstraint = Matter.MouseConstraint,
     World = Matter.World,
     Bodies = Matter.Bodies;
-
 
 class ServerGameManager {
 
