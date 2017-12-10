@@ -11,7 +11,7 @@ const Ticks = require('./../core/ticks');
 
 const PLAYER_TEXTURE = "ball.png";
 
-var EVT_ENTITY_MOVED = "entitymoved";
+const EVT_ENTITY_MOVED = "entitymoved";
 
 class EntityManager extends PIXI.Container{
 
@@ -29,7 +29,6 @@ class EntityManager extends PIXI.Container{
     }
 
     updateState(data){
-console.log(data);
         for(let type in data.updates) {
             if (!data.updates.hasOwnProperty(type)) continue;
 
@@ -38,6 +37,10 @@ console.log(data);
             switch (type){
                 case COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_TRANSFORMATION_UPDATE:
                     this._applyTransformationUpdate(cur,data.timeSinceLastUpdate);
+                    break;
+                case COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE:
+                    //TODO: mode update
+                    console.log("MODE:",cur);
                     break;
             }
         }
@@ -62,12 +65,7 @@ console.log(data);
             if (!updates.hasOwnProperty(id)) continue;
             let change = updates[id];
 
-            //if(!this.players[id]) continue;
-//
-         //   this.players[id].position.x = change.position.x;
-          //  this.players[id].position.y = change.position.y;
-
-            this.updateEntityTransformation(id,change,timeSinceLastUpdate)
+            this._updateEntityTransformation(id,change,timeSinceLastUpdate)
         }
     }
 
@@ -76,8 +74,9 @@ console.log(data);
      * @param entityID id of the entity, of which the transformation should be changed
      * @param transformation the changed data of the entity related to the id
      * @param timeSinceLastUpdate is the time since the last update and used as LERP intervall
+     * @param force true, to force the position set
      */
-    updateEntityTransformation(entityID,transformation,timeSinceLastUpdate=0,force){
+    _updateEntityTransformation(entityID,transformation,timeSinceLastUpdate=0,force){
         if(!entityID){
             console.warn("entity id is necessary to update enitty");
             return;
@@ -92,7 +91,7 @@ console.log(data);
             console.warn("no transformation data for entity",entityID,"was passed");
             return;
         }
-        var cur = this.entities[entityID];
+        let cur = this.entities[entityID];
 
         if(!force) {
             // sometimes, just the angle is sent, position stays same
@@ -102,9 +101,9 @@ console.log(data);
                 transformation.position.y = transformation.position.y || cur.position.y;
 
                 // if position has changed, lerp position
-                if (transformation.position.x != cur.position.x
-                    || transformation.position.y != cur.position.y) {
-                    var self = this;
+                if (transformation.position.x !== cur.position.x
+                    || transformation.position.y !== cur.position.y) {
+                    let self = this;
                     this.lerpManager.push(entityID,"position",{
                         get value() {
                             return cur.position
@@ -118,7 +117,7 @@ console.log(data);
                             this._oldY = cur.position.y;
                         },
                         afterUpdate:function(){
-                            if(cur.position.x != this._oldX || cur.position.y != this._oldY) {
+                            if(cur.position.x !== this._oldX || cur.position.y !== this._oldY) {
                                 self.emit(EVT_ENTITY_MOVED,{entity:cur,oldPosition:{x:this._oldX ,y:this._oldY}});
                             }
                         },
@@ -134,7 +133,7 @@ console.log(data);
             // if angle(rotation) value exists, and it does not equal the current
             // entities value, then lerp it
             if ((transformation.angle || transformation.angle === 0)
-                && cur.rotation != transformation.angle) {
+                && cur.rotation !== transformation.angle) {
                 this.lerpManager.push(entityID, "rotation", {
                     get value() {
                         return cur.rotation
@@ -154,15 +153,16 @@ console.log(data);
             // just change the available values, e.g. sometimes,
             // just angle is sent, when just the angle is changes
             if(transformation.position) {
-                var oldX = cur.position.x;
-                var oldY = cur.position.y;
+                let oldX = cur.position.x;
+                let oldY = cur.position.y;
 
                 cur.position.x = transformation.position.x;
                 cur.position.y = transformation.position.y;
-                if(cur.position.x != oldX || cur.position.y != oldY) {
-                    this.emit(EVT_ENTITY_MOVED,{entity:cur,oldPosition:{x:curX,y:curY}});
+                if(cur.position.x !== oldX || cur.position.y !== oldY) {
+                    this.emit(EVT_ENTITY_MOVED,{entity:cur,oldPosition:{x:oldX,y:oldY}});
                 }
             }
+
             // change rotation, if available
             cur.rotation = transformation.angle || cur.rotation;
         }

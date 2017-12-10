@@ -14,6 +14,13 @@ const Util = require('./../../../core/util');
 
 const MinigolfConf = require('./minigolfconf.json');
 
+const MODES={
+        DEFAULT:"DEFAULT",
+       // SPAWNED:"SPAWNED",
+        MOVING:"MOVING",
+        OUT:"OUT"
+    };
+
 class ServerEntity{
     constructor(data){
         this.ID=uuidV1();
@@ -39,17 +46,20 @@ class ServerEntity{
         }
 
         this._body.ENTITY_ID = this.ID;
+        this._body.entity = this;
 
         if(rotation) { //just rotate, if rotation is not equaling zero
             Body.rotate(this._body, rotation);
         }
+
+        this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
 
         /**
          * name of the current mode
          * @type {string}
          */
         this._currentMode = "";
-        this.setMode("default");    // set default mode
+        this.setMode(MODES.DEFAULT);    // set default mode
         //------------------callbacks------------------------------------
 
         /**
@@ -157,21 +167,36 @@ class ServerEntity{
         // because the changes are done during the enigne step
     }
 
+    /**
+     *
+     * @param mode
+     * @returns {boolean} true, if mode was changed
+     */
     setMode(mode){
+        let old = this._currentMode;
         switch (mode){
-            case "move":
-                this._body.frictionAir = MinigolfConf.GRABBED_ENTITY_FRICTION;
-                this._body.isSensor = true;
-                this._currentMode = "move";
+            case MODES.MOVING:
+                //this._body.frictionAir = MinigolfConf.GRABBED_ENTITY_FRICTION;
+                //this._body.isSensor = true;
+                this._currentMode = MODES.MOVING;
                 break;
-            case "default":
+            case MODES.DEFAULT:
             default:
-                this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
-                this._body.collisionFilter=MinigolfConf.DEFAULT_COLISION_FILTER;
-                this._body.isSensor = false;
-                this._currentMode = "default";
+                //this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
+                //this._body.collisionFilter=MinigolfConf.DEFAULT_COLISION_FILTER;
+                //this._body.isSensor = false;
+                this._currentMode = MODES.DEFAULT;
                 break;
+
+            case MODES.OUT:
+                this._body.isStatic = true;
+                this._currentMode = MODES.OUT;
+                break;
+            //case MODES.SPAWNED:
+            //    break;
         }
+
+        return old !== this._currentMode;
     }
 
     /**

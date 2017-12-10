@@ -70,7 +70,8 @@ module.exports =
                 },
                 STATE_UPDATE:{
                     TO_CLIENT:{
-                        ENTITY_TRANSFORMATION_UPDATE:"ENTITY_TRANSFORMATION_UPDATE"
+                        ENTITY_TRANSFORMATION_UPDATE:"ENTITY_TRANSFORMATION_UPDATE",
+                        ENTITY_MODE_UPDATE:"ENTITY_MODE_UPDATE"
                     },
                     TO_SERVER:{
                         SWING:"SWING"

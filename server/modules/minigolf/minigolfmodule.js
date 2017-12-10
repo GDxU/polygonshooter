@@ -169,7 +169,7 @@ class MinigolfModule extends BaseServerModule{
     }
 
     onConnectionLost(socket){
-
+        // remove client on disconnect
     }
 
     /**
@@ -300,12 +300,16 @@ class MinigolfModule extends BaseServerModule{
      */
     _bodyUpdateOverwrite(body, deltaTime, timeScale, correction) {
         // before update
+        // save the old values, to detect changes
         let oldData = {
             x: body.position.x,
             y: body.position.y,
+            vel_x:body.velocity.x,
+            vel_y:body.velocity.y,
             angle: body.angle
         };
 
+        // call the original update method
         Body.update_original(body, deltaTime, timeScale, correction);//.bind(Body);
 
         //after update
@@ -335,13 +339,39 @@ class MinigolfModule extends BaseServerModule{
         }
 
         // if the _body has not changed, nothing to do, nothing to send
-        if(!updateRequired) return;
+        if(updateRequired) {
+            this._postUpdate(
+                COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_TRANSFORMATION_UPDATE,
+                body.ENTITY_ID,
+                data
+            );
+        }
 
-        this._postUpdate(
-            COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_TRANSFORMATION_UPDATE,
-            body.ENTITY_ID,
-            data
-        );
+        // check if the mode has changed
+
+        let speed = Util.round(Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y),SEND_PERCISION_POSITION);
+        let oldSpeed = Util.round(Math.sqrt(oldData.vel_x * oldData.vel_x + oldData.vel_y * oldData.vel_y),SEND_PERCISION_POSITION);
+
+        if(speed !== oldSpeed){
+            let modeUpdateRequired = false;
+            //TODO update mode
+            if(speed === 0){    // it was moving, but now it is standing still
+                modeUpdateRequired = body.entity.setMode("DEFAULT");
+            }
+
+            if(oldSpeed){       // if it was not moving, but now it is moving
+                modeUpdateRequired = body.entity.setMode("MOVING");
+            }
+
+            //if mode has changed, send update
+            if(modeUpdateRequired) {
+                this._postUpdate(
+                    COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE,
+                    body.ENTITY_ID,
+                    {newMode:body.entity.currentMode}
+                );
+            }
+        }
     }
 
     /**
