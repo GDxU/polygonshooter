@@ -12,7 +12,7 @@ const Ticks = require('./../../../core/ticks.json');
 const BaseServerModule = require('./../baseservermodule');
 const COM = require('./../../../core/com');
 
-const CONF = require('./minigolfcong');
+const CONF = require('./minigolfconf.json');
 
 const Engine = Matter.Engine,
     Runner = Matter.Runner,
@@ -83,24 +83,37 @@ class MinigolfModule extends BaseServerModule{
             })
         );
 
+
+        // if there is no map loaded, do nothing, anymore
+        if(!this._currentMap){
+            return {};  // TODO: send other players
+        }
+
         // create entity for the newly connected client
         // and add the clientbody to the world
 
-        let body = Bodies.circle(0,0,this._currentMap.tilePosition-(this._currentMap.tilesize*0.1));
-        body.client = socket.clientInfo.id;
+        let radius = this._currentMap.map.tilesize/4;//(this._currentMap.map.tilesize/2)-(this._currentMap.map.tilesize*0.1);
+        let body = Bodies.circle(50,50,radius);
+        body.client = socket.clientData.id;
 
         World.add(
             this._engine.world,
             body
         );
 
-        this._broadcast(COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,{
+        // send everyone the new client
+        this._broadcastExceptSender(
+            socket,
+            COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,
+            {
             type:"player",
-            position:{x:body.x,y:body.y,r:body.radius},
-            playerID:socket.clientInfo.id
+            position:{x:body.position.x,y:body.position.y,r:body.circleRadius},
+            playerID:socket.clientData.id
         });
 
-        return {test:"fdssdfasd"};
+        return {
+            player:{position:{x:body.position.x,y:body.position.y},radius:body.circleRadius,id:socket.clientData.id}
+        };
     }
 
     /**
@@ -136,6 +149,7 @@ class MinigolfModule extends BaseServerModule{
         this._currentMap = JSON.parse(fs.readFileSync(path).toString());
 
         // TODO: create  bodies
+        // TODO: send bodies to clients
 
 
         // send the new map to every client

@@ -29,13 +29,21 @@ class Entity extends PIXI.Sprite {
         this.position.x = entity.position.x || 0;
         this.position.y = entity.position.y || 0;
         this.rotation = entity.rotation || 0;
-        this.width =  entity.width || 0;
-        this.height = entity.height || 0;
 
+        switch(entity.type) {
+            case "circle":
+                this.width = entity.radius*2 || 1;
+                this.height = entity.radius*2 || 1;
+                break;
+            default:
+                this.width = entity.width || 1;
+                this.height = entity.height || 1;
+                break;
+        }
         this.anchor.set(0.5);
 
         // ------- init entity values --------
-        this.ENTITY_ID = entity.ID;
+        this.ENTITY_ID = entity.id;
 
     }
 

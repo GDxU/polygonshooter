@@ -3,42 +3,6 @@
  */
 
 'use strict';
-/*
-const io = require('socket.io-client');
-const EventEmitter3 = require('eventemitter3');
-
-const com = require('./../core/com');
-
-
-class Synchronizer extends EventEmitter3 {
-
-    constructor() {
-        super();
-
-        this.EVTS ={
-            MAP:"MAP"
-        }
-    }
-
-    start(){
-        this._socket = io('http://localhost:3000');
-
-        this._socket.on('connect', function(){
-            console.log("connected");
-        });
-        this._socket.on(com.PROTOCOL.GAME.TO_CLIENT.MAP, (data)=>{
-            console.log(com.PROTOCOL.GAME.TO_CLIENT.MAP,data);
-            this.emit(this.EVTS.MAP,data.payload);
-        });
-
-
-        this._socket.on('disconnect', function(){});
-    }
-
-}
-
-module.exports = Synchronizer;*/
-
 
 const Ticks = require('./../core/ticks.json');
 const Packages = require("./../core/com");
@@ -107,14 +71,12 @@ class Synchronizer extends EventEmitter3{
          */
         this.lastGameStateUpdateTimeStamp = 0;
 
-
         /**
          * once the client is connected,
          * he receives the ID of the server
          * @type {string}
          */
         this.connectedServerID = "";
-
 
         /**
          * contains all supported statUpdate
@@ -127,7 +89,6 @@ class Synchronizer extends EventEmitter3{
     }
 
     /**
-     * TODO: add supported messages
      * pass "TO_CLIENT" object of one section of the PROTOCOL from com.js
      * @param msgObject TO_CLIENT{msgName:"msg"}
      */
@@ -206,9 +167,6 @@ class Synchronizer extends EventEmitter3{
         // a value of a client/player has changed
         this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_VALUE_UPDATE, this._onClientValueUpdate.bind(this));
 
-        // if chat message from server is received
-      //  this.socket.on(Packages.PROTOCOL.MODULES.CHAT.TO_CLIENT.CHAT_MSG, this._onChatMessageReceived.bind(this));
-
         // if value reject from serveris received
         this.socket.on(Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_VALUE_UPDATE_REJECTED, this._onClientValueUpdateRejected.bind(this));
 
@@ -226,48 +184,14 @@ class Synchronizer extends EventEmitter3{
 
     _remmoveHandlers(){
         this.socket.removeAllListeners();
-
-        // return;
-        // // get clientdata of this client
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.RESPONSE_CLIENT_ACCEPTED, this._onClientAccepted.bind(this));
-        //
-        // // receive data about the dame (after initialisation, or gamechange
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.INIT_GAME, this._onInitGame.bind(this));
-        //
-        // // receive game updates
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.UPDATE_STATE, this._onStateUpdate.bind(this));
-        //
-        // // another player connected
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.CLIENT_CONNECTED, this._onClientConnected.bind(this));
-        //
-        // // an client disconnects
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.CLIENT_DISCONNECTED, this._onClientDisconnected.bind(this));
-        //
-        // // a value of a client/player has changed
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.CLIENT_VALUE_UPDATE, this._onClientValueUpdate.bind(this));
-        //
-        // // if chat message from server is received
-        // this.socket.removeListener(Packages.PROTOCOL.MODULES.CHAT.SERVER_CHAT_MSG, this._onChatMessageReceived.bind(this));
-        //
-        // // if value reject from serveris received
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.CLIENT_VALUE_UPDATE_REJECTED, this._onClientValueUpdateRejected.bind(this));
-        //
-        // this.socket.removeListener('disconnect', this._onDisconnect.bind(this));
-        //
-        // this.socket.removeListener(Packages.PROTOCOL.SERVER.ERROR,this._onServerError.bind(this));
     }
 
     _onClientAccepted(evt) {
         if(this.connectedServerID) return;    // another received package could be from another game, to which the client is connected
+
         this.connectedServerID = evt.payload.serverID;
         this.CLIENT_INFO = evt.payload.clientInfo;
         console.log("Clientdata received");
-       /* this.playerManager.initCurrentPlayer(this.CLIENT_INFO);
-        this.gameTable.initCurrentPlayer(this.CLIENT_INFO);
-
-        if(this.CLIENT_INFO.playerIndex <0 || this.CLIENT_INFO.color <0){
-            this.gameManager.showSeatChooser();
-        }*/
 
         this.emit(EVT_ON_CLIENT_ACCEPTED,evt.payload.clientInfo);
 
@@ -277,8 +201,6 @@ class Synchronizer extends EventEmitter3{
 
     _onInitGame (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-       /* this.chatHandler.pushMessage(I18N.translate("load_game",evt.data.name,evt.data.creator),"system",evt.timeStamp);
-        this.gameManager.initGame(evt.data);*/
         this.lastGameStateUpdateEventTimeStamp=this.lastGameStateUpdateTimeStamp = new Date().getTime();
         this.emit(EVT_ON_INIT_GAME,evt.payload);
     }
@@ -294,27 +216,18 @@ class Synchronizer extends EventEmitter3{
 
     _onClientConnected (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-        //this.playerManager.addPlayers(evt.data);
         this.emit(EVT_ON_CLIENT_CONNECTED,evt.payload);
     }
 
     _onClientDisconnected (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-       // this.playerManager.removePlayer(evt.data.id)
         this.emit(EVT_ON_CLIENT_DISCONNECTED,evt.payload);
     }
 
     _onClientValueUpdate (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-       // this.playerManager.updatePlayerValue(evt.data.clientID,evt.data.changes);
         this.emit(EVT_ON_CLIENT_VALUE_UPDATE,evt.payload);
     }
-
-    /*_onChatMessageReceived (evt) {
-        if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
-        var from = this.playerManager.getPlayer(evt.data.clientID);
-        this.chatHandler.pushMessage(evt.data.message,evt.data.type,evt.timeStamp, from);
-    */
 
     _onClientValueUpdateRejected (evt) {
         if(!this._vertifyServer(evt.senderID)){console.log("message is not from server"); return; }
@@ -326,7 +239,6 @@ class Synchronizer extends EventEmitter3{
         // disconnect kann nur ein error sein
         this._remmoveHandlers();
     }
-
 
     _onServerError(evt){
         alert(evt.payload.reason);
@@ -371,39 +283,6 @@ class Synchronizer extends EventEmitter3{
         this.socket.emit(type,msg);
     }
 
-   /* sendEvent(evtType,data){
-        this.sendPackage(evtType,
-            Packages.createEvent(
-                this.CLIENT_INFO.id,
-                data,
-                this.CLIENT_INFO.token
-            )
-        );
-    }
-
-    sendChatMessage(msg){
-        this.socket.emit(
-            Packages.PROTOCOL.MODULES.CHAT.TO_SERVER.CHAT_MSG,
-            Packages.createEvent(this.CLIENT_INFO.id,{message:msg},this.CLIENT_INFO.token)
-        );
-    }*/
-
-    /**
-     * sends a message to the server which means, that one value of this client has changed
-     * key e.g. "color"
-     * value e.g. 0xFFFFFF
-     * @param {[{key,value}]}
-     */
-   /* sendPlayerUpdate(data){
-        this.sendPackage(Packages.PROTOCOL.CLIENT.CLIENT_VALUE_UPDATE,
-            Packages.createEvent(
-                this.CLIENT_INFO.id,
-                data,
-                this.CLIENT_INFO.token
-            )
-        );
-    }*/
-
     /**
      * processes the batched updates, received from the server
      * @param updateData
@@ -425,72 +304,8 @@ class Synchronizer extends EventEmitter3{
                 updates:updates,
                 timeSinceLastUpdate:timeSinceLastUpdate
             });
-
-            /*switch (type){
-                // an entity was added on the server, e.g. a new stack was created
-                case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_ENTITY_ADDED:
-                    if(!updates[this.connectedServerID])break; //just handle events from the server
-                    this.entityManager.batchCreateEntities(updates[this.connectedServerID].newEntities);
-                    break;
-                // entity position or rotation has updated
-                case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_ENTITY_TRANSFORMATION_UPDATE:
-                    this.entityManager.batchUpdateEntityTransformation(updates,timeSinceLastUpdate);
-                    break;
-                // mouse of other players moves
-                case Packages.PROTOCOL.GAME_STATE.CLIENT.SERVER_CLIENT_POSITION_UPDATE:
-                    this.playerManager.batchUpdatePlayerPosition(updates,timeSinceLastUpdate);
-                    break;
-                // an entity was turned by a player or by the server
-                // case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_TURN_ENTITY:
-                //     this.entityManager.batchTurnEntities(updates);
-                //     break;
-                // a value of an entity was changed
-                case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_ENTITY_VALUE_CHANGED:
-                    this.entityManager.batchApplyValueChanges(updates);
-                    break;
-                // the state of an entiy changes
-                case Packages.PROTOCOL.GAME_STATE.ENTITY.STATE_CHANGE:
-                    this.toolManager.batchUpdateEntityStateChange(updates);
-                    break;
-                // a users Action was rejected
-                case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_REJECT_ACTION:
-                    this._batchHandleRejections(updates);
-                    break;
-                // an entity gets deleted by a player or by the server, e.g. a stack was removed
-                // do it last, in case there are still updates in the queue for this entity
-                case Packages.PROTOCOL.GAME_STATE.ENTITY.SERVER_ENTITY_REMOVED:
-                    if(!updates[this.connectedServerID])break; //just handle events from the server
-                    this.entityManager.removeEntity(updates[this.connectedServerID].removedEntities);//just the entityIDs are passed
-                    break;
-            }*/
         }
     }
-
-    /**
-     * is called when something needs to be reverted
-     * @param data
-     * @private
-     */
-   /* _batchHandleRejections(data){
-        if(!data){
-            console.warn("rejections: no update data passed");
-            return;
-        }
-        for(let userID in data){
-            if(!data.hasOwnProperty(userID))continue;
-            let rejected =data[userID].rejected;
-            for(let i=0; i< rejected.length;i++){
-                let action = rejected[i].action;
-                let entityID = rejected[i].entity;
-                this._handleRejection(userID,action,entityID);
-            }
-        }
-    }
-
-    _handleRejection(userID,action,entityID){
-        //TODO: implemetn if necessary
-    }*/
-
 }
 
 module.exports = Synchronizer;

@@ -30,7 +30,7 @@ class GameConnectionHandler {
         let gameID = socket.handshake.query.gameid;
 
         if(!gameID || !this.runningGames[gameID]) {
-            socket.emit(Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR, {data:{reason:Packages.PROTOCOL.GENERAL.ERRORS.NO_FREE_SLOT_AVAILABLE_ON_SERVER}});       //TODO: entfernen
+            socket.emit(Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR, {payload:{reason:Packages.PROTOCOL.GENERAL.ERRORS.NO_FREE_SLOT_AVAILABLE_ON_SERVER}});       //TODO: entfernen
             console.log(socket.handshake.address,"wants to connect to an invalid seassion:",gameID);
             socket.disconnect();
             return;
@@ -39,7 +39,7 @@ class GameConnectionHandler {
         let game = this.runningGames[gameID];
 
         if(game.isServerFull){
-            socket.emit(Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR, {data:{reason:Packages.PROTOCOL.GENERAL.ERRORS.NO_FREE_SLOT_AVAILABLE_ON_SERVER}});
+            socket.emit(Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR, {payload:{reason:Packages.PROTOCOL.GENERAL.ERRORS.NO_FREE_SLOT_AVAILABLE_ON_SERVER}});
             console.log(socket.handshake.address,"wants to connect to a full server:",gameID);
             socket.disconnect();
             return;

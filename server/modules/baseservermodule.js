@@ -14,7 +14,7 @@ class BaseServerModule {
 
         /* functions to send data, received from the server instance */
         this._broadcast = null;
-        this._broadcastExpectSender = null;
+        this._broadcastExceptSender = null;
         this._sendToClient = null;
         this._postUpdate = null;
         this._sendErrorToClient = null;
@@ -58,7 +58,6 @@ class BaseServerModule {
         this._sendErrorToClient = data._sendErrorToClient;
         this._broadcastErrorToClient = data._broadcastErrorToClient;
         this.on = data._on; // eventlistener of the server
-      //  this.pubSub = data._pubSub;
     }
 
     /**

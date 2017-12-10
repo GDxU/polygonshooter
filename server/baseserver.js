@@ -51,7 +51,7 @@ class BaseServer extends EventEmitter3{
         serverModule.init({
             SERVER_ID:this.ID,
             _broadcast:this._broadcast.bind(this),
-            _broadcastExpectSender:this._broadcastExceptSender.bind(this),
+            _broadcastExceptSender:this._broadcastExceptSender.bind(this),
             _sendToClient:this._sendToClient.bind(this),
             _postUpdate:this.updateQueue.postUpdate,
             _sendErrorToClient:this._sendErrorToClient,

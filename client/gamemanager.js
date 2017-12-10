@@ -29,14 +29,16 @@ class GameManager extends EventEmitter3{
 
     start(){
         this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,(map) => this.mapManager.onMapReceived(map));
-        this.synchronizer.on("onInitGame",console.log);
-        this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entity)=>this.entityManager.entityAdded(Entity)); //TODO: add entitymanager
-        this.synchronizer.start();
+        this.synchronizer.on("onInitGame",(initDataEvt)=>this.entityManager.initData(initDataEvt));
+        this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entityEvt)=>this.entityManager.entityAdded(entityEvt)); //TODO: add entitymanager
 
+
+
+        this.synchronizer.start();
 
       //  this.mapManager.addChild(this.entityManager);
         this.app.stage.addChild(this.mapManager);
-     //   this.app.stage.addChild(this.entityManager);
+        this.app.stage.addChild(this.entityManager);
     }
 
     update(delta){
