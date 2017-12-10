@@ -19,6 +19,8 @@ class BaseServerModule {
         this._postUpdate = null;
         this._sendErrorToClient = null;
         this.on = null; // eventlistener of the server
+
+        this.sharedEvents = null;
     }
 
     get name(){
@@ -57,6 +59,7 @@ class BaseServerModule {
         this._postUpdate = data._postUpdate;
         this._sendErrorToClient = data._sendErrorToClient;
         this._broadcastErrorToClient = data._broadcastErrorToClient;
+        this.sharedEvents = data.sharedEvents;
         this.on = data._on; // eventlistener of the server
     }
 

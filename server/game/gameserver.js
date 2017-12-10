@@ -18,6 +18,7 @@ const ClientManager = require('./serverclientmanager');
 
 const BaseServer = require('./../baseserver');
 
+//TODO: in events json
 const EVT_ON_CLIENT_DISCONNECTED = "onClientDisconnected";
 const EAT_ON_CLIENT_CONNECTED = "onClientConnected";
 
@@ -66,7 +67,6 @@ class GameServer extends BaseServer{
             CURRENT_PLAYERS:this.currentConnectionCount
         }
     }
-
 
     get currentConnectionCount(){
         return this.clientManager.currentConnectionCount;
@@ -158,8 +158,6 @@ class GameServer extends BaseServer{
                 [this.clientManager.getClient(socket.id).publicInfo]
             )
         );
-
-
     }
 
     /**
@@ -319,10 +317,10 @@ class GameServer extends BaseServer{
                 });
             }
 
-            this.emit(EVT_ON_STATE_UPDATE_RECEIVED,{
+        /*    this.emit(EVT_ON_STATE_UPDATE_RECEIVED,{
                 type:type,
                 data:data[type]
-            });
+            });*/
         }
     }
 

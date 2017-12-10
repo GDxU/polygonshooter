@@ -67,6 +67,14 @@ module.exports =
                     ENTITY_ADDED:"ENTITY_ADDED"
                 },
                 TO_SERVER: {
+                },
+                STATE_UPDATE:{
+                    TO_CLIENT:{
+                        ENTITY_TRANSFORMATION_UPDATE:"ENTITY_TRANSFORMATION_UPDATE"
+                    },
+                    TO_SERVER:{
+                        SWING:"SWING"
+                    }
                 }
             },
             ERRORS:{

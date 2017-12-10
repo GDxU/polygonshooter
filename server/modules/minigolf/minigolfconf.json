@@ -1,3 +1,5 @@
 {
-  "MAP_DIRECTORY":"public/maps"
+  "MAP_DIRECTORY":"public/maps",
+  "ENTITY_FRICTION":0.15,
+  "DEFAULT_COLISION_FILTER": {"group":1}
 }

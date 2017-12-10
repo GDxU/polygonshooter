@@ -10,6 +10,12 @@ var Config = require('./config.json');
 
 const GameManager = require('./gamemanager');
 
+/**
+ * will contain update-methods, called in the gamemanager
+ * @type {Array}
+ */
+window.UPDATE = [];
+
 
 
 PIXI.Container.prototype.bringToFront = PIXI.Sprite.prototype.bringToFront = function() {	if (this.parent) {		var parent = this.parent;		parent.removeChild(this);		parent.addChild(this);	}};

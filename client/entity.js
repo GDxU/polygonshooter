@@ -4,7 +4,7 @@
 
 'use strict';
 
-var DEFAULT_RESOURCES = require("./resources.json").default.content;
+const DEFAULT_RESOURCES = require("./resources.json").default.content;
 
 class Entity extends PIXI.Sprite {
 
@@ -15,6 +15,7 @@ class Entity extends PIXI.Sprite {
         }else {
             super(PIXI.loader.resources[entity.texture].texture);
         }
+
         /**
          * the raw data which was used to initialize the entity
          */
@@ -30,10 +31,14 @@ class Entity extends PIXI.Sprite {
         this.position.y = entity.position.y || 0;
         this.rotation = entity.rotation || 0;
 
-        switch(entity.type) {
+        switch(entity.hitArea.type) {
             case "circle":
-                this.width = entity.radius*2 || 1;
-                this.height = entity.radius*2 || 1;
+                this.width = entity.hitArea.radius*2 || 1;
+                this.height = entity.hitArea.radius*2 || 1;
+                break;
+            case "rectangle":
+                this.width = entity.hitArea.width || 1;
+                this.height = entity.hitArea.height || 1;
                 break;
             default:
                 this.width = entity.width || 1;

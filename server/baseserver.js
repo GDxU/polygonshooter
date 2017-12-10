@@ -48,14 +48,17 @@ class BaseServer extends EventEmitter3{
 
         this.serverModules.push(serverModule);
 
+        let sharedEvents = new EventEmitter3();
+
         serverModule.init({
             SERVER_ID:this.ID,
             _broadcast:this._broadcast.bind(this),
             _broadcastExceptSender:this._broadcastExceptSender.bind(this),
             _sendToClient:this._sendToClient.bind(this),
-            _postUpdate:this.updateQueue.postUpdate,
+            _postUpdate:this.updateQueue.postUpdate.bind(this.updateQueue),
             _sendErrorToClient:this._sendErrorToClient,
             _broadcastErrorToClient:this._broadcastErrorToClient,
+            sharedEvents:sharedEvents,
             _on:this.on.bind(this)
         })
     }

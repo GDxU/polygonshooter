@@ -14,6 +14,7 @@ const EventEmitter3 = require('eventemitter3');
 
 //var EntityManager = require("./entitymanager");
 
+//TODO: in evts json
 const EVT_ON_CLIENT_VALUE_REJECTED = "onClientValueRejected";
 const EVT_ON_CLIENT_VALUE_UPDATE = "onClientValueUpdate";
 

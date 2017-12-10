@@ -6,6 +6,8 @@
 const GameServer = require('./../game/gameserver');
 const Packages = require('./../../core/com');
 
+const Ticks = require('./../../core/ticks.json');
+
 const MinigolfModule = require('./../modules/minigolf/minigolfmodule');
 
 class GameConnectionHandler {
@@ -64,7 +66,7 @@ class GameConnectionHandler {
         console.log("starting new game with id",gameID);
 
         let newServer = new GameServer(this.io,gameID,6);
-        newServer.use(new MinigolfModule());
+        newServer.use(new MinigolfModule(Ticks.SERVER_UPDATE_INTERVAL));
         // TODO: später anstat gameID, newServer.ID verwenden
         // gameID = newServer.ID;
         this.runningGames[gameID] = newServer;

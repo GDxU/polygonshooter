@@ -29,8 +29,11 @@ class MapManager extends PIXI.Container{
                         x:x*map.tilesize,
                         y:y*map.tilesize
                     },
-                    width:map.tilesize,
-                    height:map.tilesize,
+                    hitArea: {
+                        type:"rectangle",
+                        width: map.tilesize,
+                        height: map.tilesize,
+                    },
                     texture:resources[TileMapping.getName(curItem)].texture
                 }));
             }
