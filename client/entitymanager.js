@@ -9,7 +9,7 @@ const Entity = require('./entity');
 
 const Ticks = require('./../core/ticks');
 
-const PLAYER_TEXTURE = "ball.png";
+const ENTITY_DESCRIPTION = require('./entitydescription.json');
 
 const EVT_ENTITY_MOVED = "entitymoved";
 
@@ -40,14 +40,20 @@ class EntityManager extends PIXI.Container{
     entityAddedHandler(entityAddEvt){
         if(!entityAddEvt || !entityAddEvt.entity) throw "insufficent data passed - cannot create entity";
 
-        let entityData = entityAddEvt.entity;
-        //  playerData.type = "circle";
-        entityData.texture = PLAYER_TEXTURE;
+        let entities = [].concat(entityAddEvt.entity);
 
-        let entity = new Entity(entityData);
-        this.entities[entityData.id] = entity;
+        if(entities.length <=0) throw "no entity add data passed";
 
-        this.addChild(entity);
+        for(let i=0;i< entities.length;i++) {
+            let entityData = entities[i];
+            //  playerData.type = "circle";
+            entityData.appearance = ENTITY_DESCRIPTION[entityData.type || "none"].appearance;
+
+            let entity = new Entity(entityData);
+            this.entities[entityData.id] = entity;
+
+            this.addChild(entity);
+        }
     }
 
     updateState(data){

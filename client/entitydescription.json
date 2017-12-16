@@ -1,0 +1,12 @@
+{
+  "player":{
+    "appearance": {
+      "texture": "ball"
+    }
+  },
+  "none":{
+    "appearance": {
+      "texture": "missing_texture"
+    }
+  }
+}

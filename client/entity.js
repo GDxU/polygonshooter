@@ -10,16 +10,18 @@ class Entity extends PIXI.Sprite {
 
     constructor(entity) {
         // take texture from passed object, or take default "missing" texture
-        if(!entity.texture || !PIXI.loader.resources[entity.texture]){
+        if(!entity.appearance || !PIXI.loader.resources[(DEFAULT_RESOURCES[entity.appearance.texture] ||{} ).texture]){
             super(PIXI.loader.resources[DEFAULT_RESOURCES.missing_texture.texture].texture);
         }else {
-            super(PIXI.loader.resources[entity.texture].texture);
+            super(PIXI.loader.resources[(DEFAULT_RESOURCES[entity.appearance.texture] ||{} ).texture].texture);
         }
 
         /**
          * the raw data which was used to initialize the entity
          */
         this.rawData = entity;
+
+        this.type = entity.type;
 
         /**
          * this is the prefix for every resource

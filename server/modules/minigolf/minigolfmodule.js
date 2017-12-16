@@ -144,7 +144,8 @@ class MinigolfModule extends BaseServerModule{
         let entityRaw = {
             type:"player",
             position:{x:50,y:50},
-            playerID:socket.clientData.id,
+            //playerID:socket.clientData.id,
+            clientId:socket.clientData.id,
             hitArea: {
                 type:"circle",
                 radius: this._currentMap.map.tilesize / 4
@@ -153,8 +154,7 @@ class MinigolfModule extends BaseServerModule{
         let entity = new ServerEntity(entityRaw);
 
         this.addEntity(entity);
-        entity.playerId = socket.clientId;
-        this.players[socket.clientId] = entity;
+        this.players[socket.clientData.id] = entity;
 
        // entity.velocity = {x:25,y:25};
 
@@ -166,7 +166,7 @@ class MinigolfModule extends BaseServerModule{
                 {
                 //type:"player",
                 entity:entity.toJSON(), //entityRaw,
-                playerID:socket.clientData.id
+               // playerID:socket.clientData.id
             })
         );
 
@@ -188,7 +188,7 @@ class MinigolfModule extends BaseServerModule{
             this._postUpdate(
                 COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE,
                 player.id,
-                {newMode: players.currentMode}
+                {newMode: player.currentMode}
             );
         }
     }
@@ -393,7 +393,11 @@ class MinigolfModule extends BaseServerModule{
                 modeUpdateRequired = body.entity.setMode("DEFAULT");
             }
 
-            if(oldSpeed){       // if it was not moving, but now it is moving
+            // if it is moving, but new speed is not zero
+            // it can happen, that old speed is not zero, when starting velocity
+            // dunno why
+            if(oldSpeed !== speed && speed !== 0 ){
+                // if(oldSpeed === 0 && speed !== 0){       // if it was not moving, but now it is moving
                 modeUpdateRequired = body.entity.setMode("MOVING");
             }
 

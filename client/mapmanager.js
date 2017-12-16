@@ -7,7 +7,6 @@
 const Entity = require('./entity');
 
 const TileMapping = require('./../core/tilemapping');
-const Resources = require('./resources.json');
 
 class MapManager extends PIXI.Container{
 
@@ -16,9 +15,6 @@ class MapManager extends PIXI.Container{
     }
 
     onMapReceived(map){
-
-        var resources = Resources[map.theme || "default"].content;
-
         for(let y=0;y<map.height;y++){
             for(let x=0;x<map.width;x++){
                 let curIndex = (y*map.height) + x;
@@ -34,7 +30,7 @@ class MapManager extends PIXI.Container{
                         width: map.tilesize,
                         height: map.tilesize,
                     },
-                    texture:resources[TileMapping.getName(curItem)].texture
+                    appearance:{texture:TileMapping.getName(curItem)} //resources[TileMapping.getName(curItem)].texture
                 }));
             }
         }

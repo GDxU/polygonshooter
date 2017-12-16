@@ -19,7 +19,11 @@ const MODES= require('./../../../core/entiymodes.json');
 class ServerEntity{
     constructor(data){
         this.id=uuidV1();
-       // this.playerID = data.playerID ||"";
+        /**
+         * optional player ID, if the entity corresponds to a player
+         */
+        this.clientId = data.clientId;
+
         this._body = null;
 
         this.type = data.type || "none";
@@ -177,26 +181,26 @@ class ServerEntity{
                 //this._body.isSensor = true;
         //        this._currentMode = MODES.MOVING;
                 break;
-            case MODES.DEFAULT:
-            default:
-                //this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
-                //this._body.collisionFilter=MinigolfConf.DEFAULT_COLISION_FILTER;
-                //this._body.isSensor = false;
-          //      this._currentMode = MODES.DEFAULT;
-                break;
-
             case MODES.OUT:
                 this._body.isStatic = true;
          //       this._currentMode = MODES.OUT;
                 break;
             case MODES.QUIT:
-                console.log("quit");
                 this._body.isStatic = true;
                 this.velocity = {x:0,y:0};
         //        this._currentMode = MODES.QUIT;
             break;
             //case MODES.SPAWNED:
             //    break;
+            case MODES.DEFAULT:
+            default:
+                this._body.isStatic = false;
+                this.velocity = {x:0,y:0};
+                //this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
+                //this._body.collisionFilter=MinigolfConf.DEFAULT_COLISION_FILTER;
+                //this._body.isSensor = false;
+                //      this._currentMode = MODES.DEFAULT;
+                break;
         }
 
         this._currentMode = mode;
@@ -214,7 +218,7 @@ class ServerEntity{
             rotation:this.rotation,
             id:this.id,
             type:this.type,
-           // playerID: this.playerID,
+            clientId: this.clientId,
        //     state:this._state,
             hitArea:this.hitArea
         };
