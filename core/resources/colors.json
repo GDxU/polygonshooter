@@ -18,5 +18,8 @@
     "blue",
     "purple",
     "magenta"
-  ]
+  ],
+  "SPECIAL_COLORS":{
+    "QUITTED":"0xd3d3d3"
+  }
 }

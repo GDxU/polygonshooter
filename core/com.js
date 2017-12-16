@@ -22,6 +22,7 @@ module.exports =
     },
     PROTOCOL: {
         GENERAL:{
+            MODULE_NAME:"GENERAL",
             TO_CLIENT:{
                 ERROR:"ERROR",
                 RESPONSE_CLIENT_ACCEPTED: "RESPONSE_CLIENT_ACCEPTED",

@@ -26,6 +26,7 @@ class BaseServer extends EventEmitter3{
     constructor(io,gameID, ticks) {
         super();
         this.io = io;
+
         /**
          * id is the id of the game/server,
          * it is used to reference in the url
@@ -126,28 +127,75 @@ class BaseServer extends EventEmitter3{
         socket.clientId = socket.id;
 
 
-        this._onConnectionReceived(socket);
+        let general = this._onConnectionReceived(socket);
 
-        let initData={};
+        let initData={
+            //broadcast:{},
+            //broadcastExceptSender:{},
+            //toClient:{}
+        };
 
+        let onConRec = [].concat({
+            name:Packages.PROTOCOL.GENERAL.MODULE_NAME,
+            onConnectionReceived:()=>{return general}
+        }).concat(this.serverModules);
         // after the server has accepted the client,
         // init every other module
-        for(let i=0; i< this.serverModules.length; i++){
-            let d = this.serverModules[i].onConnectionReceived(socket);
+        for(let i=0; i< onConRec.length; i++){
+            let d = onConRec[i].onConnectionReceived(socket);
             if(!d) continue;
 
-            initData[this.serverModules[i].name] = d;
+            if(d.broadcast){
+                initData.broadcast = initData.broadcast || {};
+                initData.broadcast[onConRec[i].name] = d.broadcast;
+            }
+
+            if(d.broadcastExceptSender){
+                initData.broadcastExceptSender = initData.broadcastExceptSender || {};
+                initData.broadcastExceptSender[onConRec[i].name] = d.broadcastExceptSender;
+            }
+
+            if(d.toClient){
+                initData.toClient = initData.toClient || {};
+                initData.toClient[onConRec[i].name] = d.toClient;
+            }
+
+           // initData[this.serverModules[i].name] = d;
         }
 
         // share the initData to the newly connected client
-        this._sendToClient(
-            socket,
-            Packages.PROTOCOL.GENERAL.TO_CLIENT.INIT_DATA,
-            Packages.createEvent(
-                this.id,
-                initData
-            )
-        );
+        if(initData.toClient) {
+            this._sendToClient(
+                socket,
+                Packages.PROTOCOL.GENERAL.TO_CLIENT.INIT_DATA,
+                Packages.createEvent(
+                    this.id,
+                    initData.toClient
+                )
+            );
+        }
+
+        if(initData.broadcastExceptSender){
+            this._broadcastExceptSender(
+                socket,
+                Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_CONNECTED,
+                Packages.createEvent(
+                    this.id,
+                    initData.broadcastExceptSender
+                )
+            );
+        }
+
+        if(initData.broadcast){
+            this._broadcast(
+                Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_CONNECTED,
+                Packages.createEvent(
+                    this.id,
+                    initData.broadcast
+                )
+            );
+        }
+
     }
 
     __onConnectionReceived(socket){

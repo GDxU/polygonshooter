@@ -1,10 +1,12 @@
 {
-  "player":{
+  "PLAYER":{
+    "name":"PLAYER",
     "appearance": {
       "texture": "ball"
     }
   },
-  "none":{
+  "NONE":{
+    "name":"none",
     "appearance": {
       "texture": "missing_texture"
     }

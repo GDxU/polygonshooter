@@ -33,10 +33,14 @@ class GameManager extends EventEmitter3{
 
         //TODO von evts json
         this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,(map) => this.mapManager.onMapReceived(map));
+        this.synchronizer.on("onInitGame",(initDataEvt)=>this.mapManager.initDataHandler(initDataEvt));
         this.synchronizer.on("onInitGame",(initDataEvt)=>this.entityManager.initDataHandler(initDataEvt));
         this.synchronizer.on("onServerUpdate",(updates)=>this.entityManager.updateState(updates));
-        this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entityEvt)=>this.entityManager.entityAddedHandler(entityEvt)); //TODO: add entitymanager
+        //this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entityEvt)=>this.entityManager.entityAddedHandler(entityEvt)); //TODO: add entitymanager
 
+        this.synchronizer.on("onClientConnected",(initDataEvt)=>this.entityManager.initDataHandler(initDataEvt));
+
+        //
       /*  this.synchronizer.on("onClientAccepted", ()=>
         // TODO: remove test
          this.synchronizer.sendStateUpdate(COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING,{

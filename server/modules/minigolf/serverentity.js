@@ -15,6 +15,7 @@ const Util = require('./../../../core/util');
 const MinigolfConf = require('./minigolfconf.json');
 
 const MODES= require('./../../../core/entiymodes.json');
+const ENTITYDESC = require('./../../../core/entitydescription.json');
 
 class ServerEntity{
     constructor(data){
@@ -26,7 +27,7 @@ class ServerEntity{
 
         this._body = null;
 
-        this.type = data.type || "none";
+        this.type = data.type || ENTITYDESC.NONE.name;
 
       //  this._state = this._createDefaultEntityState();
         // set the position of the _body
@@ -102,7 +103,6 @@ class ServerEntity{
             y: v.y || 0
         });
     }
-
 
     get velocity() {
         let p = (this._body || {}).velocity || {};
@@ -220,7 +220,8 @@ class ServerEntity{
             type:this.type,
             clientId: this.clientId,
        //     state:this._state,
-            hitArea:this.hitArea
+            hitArea:this.hitArea,
+            mode:this._currentMode
         };
     }
 }

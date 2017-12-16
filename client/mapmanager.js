@@ -7,11 +7,21 @@
 const Entity = require('./entity');
 
 const TileMapping = require('./../core/tilemapping');
+const COM = require('./../core/com');
 
 class MapManager extends PIXI.Container{
 
     constructor() {
         super();
+    }
+
+    initDataHandler(initData){
+        const mg = initData[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME];
+        if(!mg) {
+            console.error("map not available");
+            return;
+        }
+        this.onMapReceived(mg.map);
     }
 
     onMapReceived(map){

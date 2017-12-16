@@ -5,6 +5,7 @@
 'use strict';
 
 const DEFAULT_RESOURCES = require("./resources.json").default.content;
+const Util = require('./../core/util');
 
 class Entity extends PIXI.Sprite {
 
@@ -22,6 +23,13 @@ class Entity extends PIXI.Sprite {
         this.rawData = entity;
 
         this.type = entity.type;
+
+        this.interactive = entity.interactive || false;
+
+        // set color if available
+        if(entity.appearance.color) {
+            this.tint = Util.parseColor(entity.appearance.color);
+        }
 
         /**
          * this is the prefix for every resource
@@ -54,6 +62,14 @@ class Entity extends PIXI.Sprite {
 
     }
 
+
+    /**
+     *  sets the color/tint of the entity
+     * @param color stirng like "#663444"
+     */
+    setColorString(color){
+        this.tint = Util.parseColor(color);
+    }
 }
 
 module.exports = Entity;

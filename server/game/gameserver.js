@@ -87,7 +87,7 @@ class GameServer extends BaseServer{
      */
     _onConnectionReceived(socket) {
         this.allSockets.push(socket);
-        this._initClient(socket);
+        let initData = this._initClient(socket);
 
         socket._onClientValueUpdate = this._onValueUpdateReceived.bind({self:this,socket:socket});
         socket.on(Packages.PROTOCOL.GENERAL.TO_SERVER.CLIENT_VALUE_UPDATE,socket._onClientValueUpdate );
@@ -95,6 +95,8 @@ class GameServer extends BaseServer{
         // server receives client entity updates in this event
         socket._onClientStateUpdate = this._onClientStateUpdate.bind({self:this,socket:socket});
         socket.on(Packages.PROTOCOL.GENERAL.TO_SERVER.SEND_STATE, socket._onClientStateUpdate);
+
+        return initData;
     }
 
     /**
@@ -141,7 +143,7 @@ class GameServer extends BaseServer{
         );
 
         // share info about all other players with newly connected client
-        let alreadyKnownClients = this.clientManager.getAllPublicClientInfo(clientInfo.id);
+      /*  let alreadyKnownClients = this.clientManager.getAllPublicClientInfo(clientInfo.id);
         if(alreadyKnownClients && alreadyKnownClients.length >0) {
             this._sendToClient(
                 socket,
@@ -151,17 +153,26 @@ class GameServer extends BaseServer{
                     this.clientManager.getAllPublicClientInfo(clientInfo.id)
                 )
             );
-        }
+        }*/
 
         // share public info of newly connected client with everyone
-        this._broadcastExceptSender(
+      /*  this._broadcastExceptSender(
             socket,
             Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_CONNECTED,
             Packages.createEvent(
                 this.id,
                 [this.clientManager.getClient(clientInfo.id).publicInfo]
             )
-        );
+        );*/
+
+        return {
+            broadcastExceptSender:{
+                connectedClients:  this.clientManager.getClient(clientInfo.id).publicInfo
+            },
+            toClient: {
+                connectedClients: this.clientManager.getAllPublicClientInfo()
+            }
+        };
     }
 
     /**

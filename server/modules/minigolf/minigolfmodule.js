@@ -10,6 +10,8 @@ const fs = require('fs');
 const CONF = require('./minigolfconf.json');
 const MODES= require('./../../../core/entiymodes.json');
 
+const ENTITYDESC = require('./../../../core/entitydescription.json');
+
 const Util = require('./../../../core/util');
 const BaseServerModule = require('./../baseservermodule');
 const COM = require('./../../../core/com');
@@ -115,7 +117,7 @@ class MinigolfModule extends BaseServerModule{
         // TEST INIT, should be in module
         let path = Path.join(appRoot,CONF.MAP_DIRECTORY,"testmap"+".json");
         this._currentMap = JSON.parse(fs.readFileSync(path).toString());
-        this._sendToClient(socket,
+       /* this._sendToClient(socket,
             COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,
             COM.createEvent(this.SERVER_ID,{
                 width:this._currentMap.map.width,
@@ -123,7 +125,7 @@ class MinigolfModule extends BaseServerModule{
                 tilesize:this._currentMap.map.tilesize,
                 data:this._currentMap.map.data
             })
-        );
+        );*/
 
 
         // if there is no map loaded, do nothing, anymore
@@ -142,7 +144,7 @@ class MinigolfModule extends BaseServerModule{
             body
         );*/
         let entityRaw = {
-            type:"player",
+            type:ENTITYDESC.PLAYER.name,
             position:{x:50,y:50},
             //playerID:socket.clientData.id,
             clientId:socket.clientData.id,
@@ -159,7 +161,7 @@ class MinigolfModule extends BaseServerModule{
        // entity.velocity = {x:25,y:25};
 
         // send everyone the new client
-        this._broadcastExceptSender(
+       /* this._broadcastExceptSender(
             socket,
             COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,
             COM.createEvent(
@@ -169,19 +171,31 @@ class MinigolfModule extends BaseServerModule{
                 entity:entity.toJSON(), //entityRaw,
                // playerID:socket.clientData.id
             })
-        );
+        );*/
 
-        this._sendToClient(socket,
+    /*    this._sendToClient(socket,
             COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,
             COM.createEvent(
                 this.SERVER_ID,
                 {
                     entity: this._getGameEntityState()
                 }));
-
+*/
 
         return {
-            playerEntityId:entity.id//entity.toJSON()
+            broadcastExceptSender:{
+                entities:entity.toJSON()
+            },
+            toClient:{
+                playerEntityId:entity.id,
+                entities: this._getGameEntityState(),
+                map:{
+                    width:this._currentMap.map.width,
+                    height:this._currentMap.map.height,
+                    tilesize:this._currentMap.map.tilesize,
+                    data:this._currentMap.map.data
+                }
+            }
         };
     }
 

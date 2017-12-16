@@ -7,9 +7,12 @@ const COM = require('./../core/com');
 const LerpManager = require('./lerpmanager');
 const Entity = require('./entity');
 
-const Ticks = require('./../core/ticks');
+const Ticks = require('./../core/ticks.json');
 
-const ENTITY_DESCRIPTION = require('./entitydescription.json');
+const COLORS = require('./../core/resources/colors.json');
+
+const ENTITYDESC = require('../core/entitydescription.json');
+const ENTITYMODES = require('../core/entiymodes.json');
 
 const EVT_ENTITY_MOVED = "entitymoved";
 
@@ -20,6 +23,8 @@ class EntityManager extends PIXI.Container{
     constructor() {
         super();
         this.entities={};
+
+        this.players = {};
 
         this.lerpManager = new LerpManager();
 
@@ -38,19 +43,30 @@ class EntityManager extends PIXI.Container{
     }
 
     entityAddedHandler(entityAddEvt){
-        if(!entityAddEvt || !entityAddEvt.entity) throw "insufficent data passed - cannot create entity";
+        if(!entityAddEvt || !entityAddEvt.entities) throw "insufficent data passed - cannot create entity";
 
-        let entities = [].concat(entityAddEvt.entity);
+        let entities = [].concat(entityAddEvt.entities);
 
         if(entities.length <=0) throw "no entity add data passed";
 
         for(let i=0;i< entities.length;i++) {
             let entityData = entities[i];
             //  playerData.type = "circle";
-            entityData.appearance = ENTITY_DESCRIPTION[entityData.type || "none"].appearance;
+            entityData.appearance = ENTITYDESC[entityData.type || ENTITYDESC.NONE.name].appearance;
+            //entityData.appearance.color = COLORS.PLAYERS_COLORS[entityData.color];
 
             let entity = new Entity(entityData);
             this.entities[entityData.id] = entity;
+
+            // if entity is a player, save it in the player list
+            if(entityData.type===ENTITYDESC.PLAYER.name){
+                entity.clientId = entityData.clientId;
+                this.players[entityData.clientId] = entity;
+
+                if(entityData.mode === ENTITYMODES.QUIT){
+                    entityData.appearance.colors = COLORS.SPECIAL_COLORS.QUITTED;
+                }
+            }
 
             this.addChild(entity);
         }
@@ -74,24 +90,52 @@ class EntityManager extends PIXI.Container{
         }
     }
 
+    updatePlayerColor(evt){
+        if(!evt || !evt.colorUpdates || ! evt.colorUpdates.length){
+            console.error("no color updates passed");
+            return;
+        }
+
+        let e = [].concat(evt.colorUpdates);
+
+
+        for(let i=0; i< e.length;i++){
+            let player = this.players[e[i].id];
+            if(!player) continue;
+            if(typeof e[i].color !== "number" || e[i].color <0 || e[i].color >= COLORS.PLAYERS_COLORS.length) continue;
+
+            player.setColorString(COLORS.PLAYERS_COLORS[e[i].color]);
+        }
+    }
+
+    clientConnected(evt){
+        console.log(evt);
+    }
+
+    /**
+     * inits the player data, aswell as the data of other clients
+     * @param initDataEvt
+     */
     initDataHandler(initDataEvt){
         if(!initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME]
-            || !initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].playerEntityId)
+            //|| !initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].playerEntityId
+        )
                 throw "initdata is damaged,";
 
-        this.playerEntityId = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].playerEntityId;
+        let mg = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME];
+        let general = initDataEvt[COM.PROTOCOL.GENERAL.MODULE_NAME];
 
+        // add the entities to the manager
+        this.entityAddedHandler(mg);
+
+        // colorize all received players
+        this.updatePlayerColor({colorUpdates:general.connectedClients});
+
+        if(mg.playerEntityId) {
+            this.playerEntityId = mg.playerEntityId;
+            this.entities[this.playerEntityId].interactive = true;
+        }
         this.emit(EVT_ON_PLAYER_RECEIVED,{playerEntityId:this.playerEntityId});
-
-
-        /*   let playerData = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].player;
-         //  playerData.type = "circle";
-           playerData.texture = PLAYER_TEXTURE;
-
-           let player = new Entity(playerData);
-           this.entities[playerData.id] = player;
-
-           this.addChild(player);*/
     }
 
 
