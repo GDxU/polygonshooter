@@ -159,7 +159,8 @@ class MinigolfModule extends BaseServerModule{
        // entity.velocity = {x:25,y:25};
 
         // send everyone the new client
-        this._broadcast(
+        this._broadcastExceptSender(
+            socket,
             COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,
             COM.createEvent(
                 this.SERVER_ID,
@@ -170,9 +171,27 @@ class MinigolfModule extends BaseServerModule{
             })
         );
 
+        this._sendToClient(socket,
+            COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,
+            COM.createEvent(
+                this.SERVER_ID,
+                {
+                    entity: this._getGameEntityState()
+                }));
+
+
         return {
             playerEntityId:entity.id//entity.toJSON()
         };
+    }
+
+    _getGameEntityState(){
+        let result = [];
+        for(let i in this.gameEntities){
+            if(!this.gameEntities.hasOwnProperty(i))continue;
+            result.push(this.gameEntities[i].toJSON());
+        }
+        return result;
     }
 
     onConnectionLost(socket){
