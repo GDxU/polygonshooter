@@ -13,6 +13,8 @@ const PLAYER_TEXTURE = "ball.png";
 
 const EVT_ENTITY_MOVED = "entitymoved";
 
+const EVT_ON_PLAYER_RECEIVED = "onPlayerReceived";
+
 class EntityManager extends PIXI.Container{
 
     constructor() {
@@ -20,12 +22,32 @@ class EntityManager extends PIXI.Container{
         this.entities={};
 
         this.lerpManager = new LerpManager();
-        window.UPDATE.push(this.lerpManager.update.bind(this.lerpManager));
+
+        // push the lerpmanager, so it gets updated
+       // window.UPDATE.push(this.lerpManager.update.bind(this.lerpManager));
+
+        /**
+         * contains the id of the player's  (ball)
+         * @type {String}
+         */
+        this.playerEntityId = null;
     }
 
+    update(delta){
+        this.lerpManager.update(delta);
+    }
 
-    entityAdded(){
+    entityAddedHandler(entityAddEvt){
+        if(!entityAddEvt || !entityAddEvt.entity) throw "insufficent data passed - cannot create entity";
 
+        let entityData = entityAddEvt.entity;
+        //  playerData.type = "circle";
+        entityData.texture = PLAYER_TEXTURE;
+
+        let entity = new Entity(entityData);
+        this.entities[entityData.id] = entity;
+
+        this.addChild(entity);
     }
 
     updateState(data){
@@ -46,16 +68,24 @@ class EntityManager extends PIXI.Container{
         }
     }
 
-    initData(initDataEvt){
-        console.log("init",initDataEvt);
-        let playerData = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].player;
-        playerData.type = "circle";
-        playerData.texture = PLAYER_TEXTURE;
+    initDataHandler(initDataEvt){
+        if(!initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME]
+            || !initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].playerEntityId)
+                throw "initdata is damaged,";
 
-        let player = new Entity(playerData);
-        this.entities[playerData.ID] = player;
+        this.playerEntityId = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].playerEntityId;
 
-        this.addChild(player);
+        this.emit(EVT_ON_PLAYER_RECEIVED,{playerEntityId:this.playerEntityId});
+
+
+        /*   let playerData = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].player;
+         //  playerData.type = "circle";
+           playerData.texture = PLAYER_TEXTURE;
+
+           let player = new Entity(playerData);
+           this.entities[playerData.id] = player;
+
+           this.addChild(player);*/
     }
 
 

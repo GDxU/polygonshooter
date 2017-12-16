@@ -23,10 +23,18 @@ class BaseServer extends EventEmitter3{
      * @param io
      * @param serverModules
      */
-    constructor(io,serverID, ticks) {
+    constructor(io,gameID, ticks) {
         super();
         this.io = io;
-        this.ID = serverID || uuidV1();
+        /**
+         * id is the id of the game/server,
+         * it is used to reference in the url
+         * but it is also the namepsace of the socket.io room
+         */
+        this.id = gameID;
+
+        if(!this.id) throw "no server id was passed - cannot create server";
+
      //   this.io.on('connection', this._onConnectionReceived.bind(this));
 
         this.serverModules = [];
@@ -51,7 +59,7 @@ class BaseServer extends EventEmitter3{
         let sharedEvents = new EventEmitter3();
 
         serverModule.init({
-            SERVER_ID:this.ID,
+            SERVER_ID:this.id,
             _broadcast:this._broadcast.bind(this),
             _broadcastExceptSender:this._broadcastExceptSender.bind(this),
             _sendToClient:this._sendToClient.bind(this),
@@ -71,7 +79,7 @@ class BaseServer extends EventEmitter3{
     _sendEntityUpdates(){
         if(!this.updateQueue.updateRequired) return;
         this._broadcast(Packages.PROTOCOL.GENERAL.TO_CLIENT.UPDATE_STATE,Packages.createEvent(
-            this.ID,
+            this.id,
             this.updateQueue.popUpdatedData()
             )
         );
@@ -107,10 +115,16 @@ class BaseServer extends EventEmitter3{
         // create a function, which normalizes the user
         socket.getNormalizedUser = function () {
             return this.request.user || {
-                displayName: this.request.session.guestName,
-                status : 0 // 0 is equal to "guest"
+               // displayName: this.request.session.guestName,
+                status : 0,// 0 is equal to "guest"
+                id: socket.id
             };
         };
+
+        // set the clientID, currently its the socketID
+        // TODO: create new ID
+        socket.clientId = socket.id;
+
 
         this._onConnectionReceived(socket);
 
@@ -130,7 +144,7 @@ class BaseServer extends EventEmitter3{
             socket,
             Packages.PROTOCOL.GENERAL.TO_CLIENT.INIT_DATA,
             Packages.createEvent(
-                this.ID,
+                this.id,
                 initData
             )
         );
@@ -157,7 +171,7 @@ class BaseServer extends EventEmitter3{
             this.socket,
             Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_DISCONNECTED,
             Packages.createEvent(
-                this.self.ID,
+                this.self.id,
                 {id: this.socket.id}
             )
         );
@@ -165,8 +179,9 @@ class BaseServer extends EventEmitter3{
 
 
     _broadcast(type,msg){
-        //this.io.sockets.emit(type,msg);
-        this.io.emit(type,msg);
+       // this.io.sockets.emit(type,msg);
+       // this.io.in(this.id).emit(type,msg);
+        this.io.to(this.id).emit(type,msg);
     }
 
     _broadcastExceptSender(senderSocket, type, msg){
@@ -182,7 +197,7 @@ class BaseServer extends EventEmitter3{
             clientSocket,
             Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR,
             Packages.createEvent(
-                this.ID,
+                this.id,
                 {reason: reason}
             )
         );
@@ -192,7 +207,7 @@ class BaseServer extends EventEmitter3{
         this._broadcast(
             Packages.PROTOCOL.GENERAL.TO_CLIENT.ERROR,
             Packages.createEvent(
-                this.ID,
+                this.id,
                 {reason: reason}
             )
         );

@@ -28,12 +28,32 @@ class GameManager extends EventEmitter3{
     }
 
     start(){
+
+
+
         //TODO von evts json
         this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,(map) => this.mapManager.onMapReceived(map));
-        this.synchronizer.on("onInitGame",(initDataEvt)=>this.entityManager.initData(initDataEvt));
+        this.synchronizer.on("onInitGame",(initDataEvt)=>this.entityManager.initDataHandler(initDataEvt));
         this.synchronizer.on("onServerUpdate",(updates)=>this.entityManager.updateState(updates));
-        this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entityEvt)=>this.entityManager.entityAdded(entityEvt)); //TODO: add entitymanager
+        this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entityEvt)=>this.entityManager.entityAddedHandler(entityEvt)); //TODO: add entitymanager
 
+      /*  this.synchronizer.on("onClientAccepted", ()=>
+        // TODO: remove test
+         this.synchronizer.sendStateUpdate(COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING,{
+             velocity:{
+                 x:25,
+                 y:25
+             }
+         }));*/
+        this.entityManager.on("onPlayerReceived",()=>{
+            console.log("ready");
+            this.synchronizer.sendStateUpdate(COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING,{
+                velocity:{
+                    x:25,
+                    y:25
+                }
+            })
+        });
 
 
         this.synchronizer.start();
@@ -44,7 +64,7 @@ class GameManager extends EventEmitter3{
     }
 
     update(delta){
-
+        this.entityManager.update(delta);
         for(let i=0;i<window.UPDATE.length;i++){
             window.UPDATE[i](delta);
         }

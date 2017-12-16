@@ -67,7 +67,7 @@ class BaseServerModule {
      * called, when a connection of a client is received
      * @param socket
      *
-     * @returns initData object, which is sent to the client
+     * @returns initDataHandler object, which is sent to the client
      */
     onConnectionReceived(socket){
         throw "abstract-method";

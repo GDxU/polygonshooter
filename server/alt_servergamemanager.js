@@ -28,7 +28,7 @@ class ServerGameManager {
 
         this._ticks = ticks || 64;
 
-        this.ID = uuid();
+        this.id = uuid();
 
         this._engine = null;
         this._world = null;
@@ -40,11 +40,11 @@ class ServerGameManager {
 
     _broadcast(type,msg){
         //  this.io.sockets.emit(type,msg);
-        this.io.to(this.ID).emit(type,msg);
+        this.io.to(this.id).emit(type,msg);
     }
 
     _broadcastExceptSender(senderSocket,type,msg){
-        senderSocket.broadcast.to(this.ID).emit(type,msg);
+        senderSocket.broadcast.to(this.id).emit(type,msg);
     }
 
     _sendToClient(clientConnectionSocket,type,msg){
@@ -70,7 +70,7 @@ class ServerGameManager {
 
         this._sendToClient(client,
             com.PROTOCOL.GAME.TO_CLIENT.MAP,
-            com.createEvent(this.ID,{
+            com.createEvent(this.id,{
                 width:this._currentMap.map.width,
                 height:this._currentMap.map.height,
                 tilesize:this._currentMap.map.tilesize,

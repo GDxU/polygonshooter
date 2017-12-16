@@ -1,0 +1,22 @@
+{
+  "PLAYERS_COLORS":[
+    "0xff3a3a",
+    "0xff8e4c",
+    "0xf5ff44",
+    "0xaeff5e",
+    "0x63ffea",
+    "0x6066ff",
+    "0xa359ff",
+    "0xff3fd5"
+  ],
+  "PLAYERS_COLOR_NAMES":[
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "cyan",
+    "blue",
+    "purple",
+    "magenta"
+  ]
+}

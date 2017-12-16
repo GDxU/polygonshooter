@@ -4,6 +4,7 @@
 
 'use strict';
 
+const Rights = require('./../../core/rights');
 const Util = require('./../../core/util');
 const Ticks = require('./../../core/ticks.json');
 const SharedConfig = require('./../../core/sharedconfig');
@@ -12,6 +13,7 @@ const BadwordsFilter = require('bad-words');
 
 const uuidV1 = require('uuid/v1');
 
+const COLORS = require('./../../core/resources/colors');
 const RANDOM_NAMES = require('./../resources/random_names.json');
 const ADJECTIVES = require('./../resources/adjectives.json');
 
@@ -23,22 +25,23 @@ class Client{
             throw "no socket or clientInfo, client cannot get instantiated";
 
         this.socket = socket;
-        this.color = clientInfo.color || -1;
-        this.name = clientInfo.name || "anonymous";
+        this.color = clientInfo.color >= 0 ? clientInfo.color : -1;    // index of the color (determined in colors.json
+        this.displayName = clientInfo.displayName || "anonymous";
         this.userStatus = clientInfo.userStatus || 0;
         this.cursor = clientInfo.cursor || "default";
-        this.playerIndex =-1;
+        this.playerIndex = clientInfo.playerIndex >= 0?clientInfo.playerIndex:-1;
         this.verification = uuidV1();
+        this.id = clientInfo.id;
     }
 
-    get ID(){
-        return this.socket.id;
-    }
+   /* get ID(){
+        return this.id;
+    }*/
 
     get privateInfo(){
         return {
-            id:this.ID,
-            name:this.name,
+            id:this.id,
+            displayName:this.displayName,
             userStatus:this.userStatus,
             color:this.color,
             cursor:this.cursor,
@@ -49,8 +52,8 @@ class Client{
 
     get publicInfo (){
         return {
-            id:this.ID,
-            name:this.name,
+            id:this.id,
+            displayName:this.displayName,
             userStatus:this.userStatus,
             color:this.color,
             cursor:this.cursor,
@@ -58,7 +61,6 @@ class Client{
         };
     }
 }
-
 
 class ClientManager{
 
@@ -73,7 +75,7 @@ class ClientManager{
          * @type {boolean[]}
          */
         this.assignedPlayerIndexes= [];
-        for(let i=0; i< Ticks.MAX_PLAYERS;i++){
+        for(let i=0; i< SharedConfig.MAX_PLAYERS;i++){
             this.assignedPlayerIndexes.push(false);
         }
 
@@ -102,29 +104,55 @@ class ClientManager{
      */
     _addClient(socket, clientInfo){
         // assign prefered color to client
-        // if it is not assigned already, if it is assigned, he has to choose another color
+        // if color of client is set, and available, set it as client color,
+        // else search for a free color
         if(typeof clientInfo.color === 'number' && clientInfo >=0  && !this.assignedColors[clientInfo.color] ){
-            this.assignedColors[clientInfo.color] = socket.id;
+            this.assignedColors[clientInfo.color] = clientInfo.id;
         }else{
-            clientInfo.color = -1;
+            for(let c=0; c < COLORS.PLAYERS_COLORS.length; c++){
+                // if color already assigned, continue
+                if(this.assignedColors[c]) continue;
+                // otherwise set the color and break
+                clientInfo.color = c;
+                this.assignedColors[clientInfo.color] = c;
+                break;
+            }
         }
 
-        if(clientInfo.playerIndex >=0){
-            this.assignedPlayerIndexes[clientInfo.playerIndex] = clientInfo.playerIndex;
+        // assign prefered color to client
+        // if playerIndex of client is set, and available, set it as playerIndex,
+        // else search for a free playerIndex
+        if(typeof clientInfo.playerIndex === 'number' && clientInfo >=0  && !this.assignedPlayerIndexes[clientInfo.playerIndex] ){
+            this.assignedPlayerIndexes[clientInfo.playerIndex] = clientInfo.id;
+        }else{
+            for(let pi=0; pi < SharedConfig.MAX_PLAYERS; pi++){
+                // if playerIndex already assigned, continue
+                if(this.assignedColors[pi]) continue;
+                // otherwise set the playerIndex and break
+                clientInfo.playerIndex = pi;
+                this.assignedPlayerIndexes[clientInfo.playerIndex] = pi;
+                break;
+            }
         }
 
-        this.clients[socket.id] = new Client(socket,clientInfo);
+        // if the user is a guest, give him a random name
+        if(!clientInfo.displayName || clientInfo.userStatus === Rights.RIGHTS.guest){
+            clientInfo.displayName = this.getRandomName();
+        }
+
+
+        this.clients[clientInfo.id] = new Client(socket,clientInfo);
         // if the name is not unique, make it unique
-        this.clients[socket.id].name = this.getAlternativeNameIfOccupied(this.clients[socket.id].name);
-        this.assignedNames[this.clients[socket.id].name.toLowerCase()] = socket.id;
+        this.clients[clientInfo.id].displayName = this.getAlternativeNameIfOccupied(this.clients[clientInfo.id].displayName);
+        this.assignedNames[this.clients[clientInfo.id].displayName.toLowerCase()] = clientInfo.id;
     }
 
     doesClientExist(id){
         return (id && this.clients[id]);
     }
 
-    verificateClient(id,token){
-        return token && this.clients[id].verification === token;
+    verificateClient(socket,id,token){
+        return token && this.clients[id].verification === token && socket.clientId === id;
     }
 
     isClientReady(id){
@@ -263,7 +291,7 @@ class ClientManager{
         // release old name TODO: evtl drin lassn?
         if(this.assignedNames[old]){
             delete this.assignedNames[old];
-            this.assignedNames[name.toLowerCase()] = curClient.ID;
+            this.assignedNames[name.toLowerCase()] = curClient.id;
         }
 
         console.log("updateClientName: player",id,"changed name from",old,"to",name);
@@ -304,29 +332,28 @@ class ClientManager{
         this._addClient(socket,clientInfo);
 
         this._currentConnectionCount = Object.keys(this.clients).length;
-        console.log("Connected: "+socket.id+" Users: "+this._currentConnectionCount);
+        console.log("Connected: "+clientInfo.id+" Users: "+this._currentConnectionCount);
 
         if(this.admin == null){
-            this.admin = socket.id;
+            this.admin = clientInfo.id;
             console.log("Admin is now: "+this.admin);
         }
     }
 
     clientDisconnected(socket,data){
-
         //this.boradcastExceptSender(clientSocket,Packages.PROTOCOL.SERVER.CLIENT_DISCONNECTED,{msg:"",data:{id:clientSocket.id}});
 
-        if (this.clients.hasOwnProperty(socket.id)) {
-            this.assignedPlayerIndexes[this.clients[socket.id].playerIndex] = false;   // free the seat
-            delete this.assignedColors[this.clients[socket.id].color];  // release color
-            delete this.assignedNames[this.clients[socket.id].name];
-            delete this.clients[socket.id];                             // remove client out of the list
+        if (this.clients.hasOwnProperty(socket.clientId)) {
+            this.assignedPlayerIndexes[this.clients[socket.clientId].playerIndex] = false;   // free the seat
+            delete this.assignedColors[this.clients[socket.clientId].color];  // release color
+            delete this.assignedNames[this.clients[socket.clientId].displayName];
+            delete this.clients[socket.clientId];                             // remove client out of the list
         }
 
         this._currentConnectionCount = Object.keys(this.clients).length;
-        console.log("disconnect: "+socket.id+" Users left: "+this._currentConnectionCount);
+        console.log("disconnect: "+socket.clientId+" Users left: "+this._currentConnectionCount);
         // change addmin
-        if(this.admin === socket.id){
+        if(this.admin === socket.clientId){
             this.admin = null;
             let keys = Object.keys(this.clients);
             if(keys.length > 0) {

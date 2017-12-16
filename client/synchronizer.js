@@ -120,6 +120,7 @@ class Synchronizer extends EventEmitter3{
         this.socket = require('socket.io-client').connect(Packages.NAMESPACES.MINIGOLF, {
             query:"gameid="+GAME_ID
         });
+
         this._initHandlers();
     }
 
@@ -134,7 +135,7 @@ class Synchronizer extends EventEmitter3{
         setInterval(function(){
             if(!this.updateQueue.updateRequired) return;
 
-            this.sendPackage(Packages.PROTOCOL.GAME.MINIGOLF.TO_SERVER.SEND_STATE,Packages.createEvent(
+            this.sendPackage(Packages.PROTOCOL.GENERAL.TO_SERVER.SEND_STATE,Packages.createEvent(
                 this.CLIENT_INFO.id,
                 this.updateQueue.popUpdatedData(),
                 this.CLIENT_INFO.token
@@ -194,9 +195,9 @@ class Synchronizer extends EventEmitter3{
         this.CLIENT_INFO = evt.payload.clientInfo;
         console.log("Clientdata received");
 
+        this._startUpdating();
         this.emit(EVT_ON_CLIENT_ACCEPTED,evt.payload.clientInfo);
 
-        this._startUpdating();
         window.hideLoadingDialog();
     }
 
@@ -283,6 +284,30 @@ class Synchronizer extends EventEmitter3{
     sendPackage(type, msg){
         this.socket.emit(type,msg);
     }
+
+    /**
+     * sends a message to the server which means, that one value of this client has changed
+     * key e.g. "color"
+     * value e.g. 0xFFFFFF
+     * @param {[{key,value}]}
+     */
+    sendClientUpdate(data){
+        this.sendPackage(Packages.PROTOCOL.GENERAL.TO_SERVER.CLIENT_VALUE_UPDATE,
+            Packages.createEvent(
+                this.CLIENT_INFO.id,
+                data,
+                this.CLIENT_INFO.token
+            )
+        );
+    }
+
+    sendStateUpdate(type,data){
+        this.updateQueue.postUpdate(type,
+            this.CLIENT_INFO.id,
+            data
+        );
+    }
+
 
     /**
      * processes the batched updates, received from the server

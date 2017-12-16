@@ -59,7 +59,7 @@ class GameServer extends BaseServer{
          */
         this.allSockets = [];
 
-        console.log("GameServer started, ID:",this.ID);
+        console.log("GameServer started, ID:",this.id);
     }
 
     get currentState(){
@@ -105,15 +105,18 @@ class GameServer extends BaseServer{
     _initClient(socket){
         let clientInfo = {};// TODO: load clientinfo from database/redis/cookie???
 
+        clientInfo = socket.getNormalizedUser();
+      //  socket.clientId = clientInfo.id;
+
         // if the user is a guest, give him a random name
-        if(!clientInfo.name || clientInfo.userStatus === Rights.RIGHTS.guest){
-            clientInfo.name = this.clientManager.getRandomName();
-        }
+      /*  if(!clientInfo.displayName || clientInfo.userStatus === Rights.RIGHTS.guest){
+            clientInfo.displayName = this.clientManager.getRandomName();
+        }*/
 
         // connect client to this server
         this.clientManager.clientConnected(socket,clientInfo);
 
-        let newlyConnectedClient = this.clientManager.getClient(socket.id);
+        let newlyConnectedClient = this.clientManager.getClient(clientInfo.id);
 
         // add the client instance to the socket, so it is accesible in every module
         socket.clientData = newlyConnectedClient;
@@ -123,28 +126,29 @@ class GameServer extends BaseServer{
             client:newlyConnectedClient
         });
 
+
         // share info with client (that he is connected and his own info)
         this._sendToClient(
             socket,
             Packages.PROTOCOL.GENERAL.TO_CLIENT.RESPONSE_CLIENT_ACCEPTED,
             Packages.createEvent(
-                this.ID,
+                this.id,
                 {
                     clientInfo:newlyConnectedClient.privateInfo,
-                    serverID: this.ID
+                    serverID: this.id
                 }
             )
         );
 
         // share info about all other players with newly connected client
-        let alreadyKnownClients = this.clientManager.getAllPublicClientInfo(socket.id);
+        let alreadyKnownClients = this.clientManager.getAllPublicClientInfo(clientInfo.id);
         if(alreadyKnownClients && alreadyKnownClients.length >0) {
             this._sendToClient(
                 socket,
                 Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_CONNECTED,
                 Packages.createEvent(
-                    this.ID,
-                    this.clientManager.getAllPublicClientInfo(socket.id)
+                    this.id,
+                    this.clientManager.getAllPublicClientInfo(clientInfo.id)
                 )
             );
         }
@@ -154,8 +158,8 @@ class GameServer extends BaseServer{
             socket,
             Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_CONNECTED,
             Packages.createEvent(
-                this.ID,
-                [this.clientManager.getClient(socket.id).publicInfo]
+                this.id,
+                [this.clientManager.getClient(clientInfo.id).publicInfo]
             )
         );
     }
@@ -205,7 +209,7 @@ class GameServer extends BaseServer{
             this.self._broadcast(    // if the change was valid, send everyone the new information
                 Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_VALUE_UPDATE,
                 Packages.createEvent(
-                    this.self.ID,
+                    this.self.id,
                     {
                         clientID: evt.senderID,
                         changes: evt.data
@@ -217,7 +221,7 @@ class GameServer extends BaseServer{
                 this.socket,
                 Packages.PROTOCOL.GENERAL.TO_CLIENT.CLIENT_VALUE_UPDATE_REJECTED,
                 Packages.createEvent(
-                    this.self.ID,
+                    this.self.id,
                     {
                         violations: violations
                     }
@@ -227,7 +231,7 @@ class GameServer extends BaseServer{
     }
 
     _onClientStateUpdate(evt) {
-        if(!evt || !evt.data){
+        if(!evt || !evt.payload){
             console.log("SEND_STATE: no data received");
             return;
         }
@@ -236,15 +240,40 @@ class GameServer extends BaseServer{
             return;
         }
 
-        if(!this.self.clientManager.verificateClient(evt.senderID,evt.token)){
-            console.warn("User sends unverificated messages!",evt.senderID,this.socket.handshake.address,Packages.PROTOCOL.CLIENT.SEND_STATE);
+        if(!this.self.clientManager.verificateClient(this.socket,evt.senderID,evt.token)){
+            console.warn("User sends unverificated messages!",evt.senderID,this.socket.handshake.address,Packages.PROTOCOL.GENERAL.TO_SERVER.SEND_STATE);
             return;
         }
 
         // the received updates are processes everytime before the engine is processed.
        // this.self.receivedUpdateQueue.push(evt.data);
 
-        this._processUpdates(evt.data);
+      //  this.self._processUpdates(evt.payload);
+
+        for(let type in evt.payload){
+            if(!evt.payload.hasOwnProperty(type)) continue;
+            for(let id in evt.payload[type]) {
+                if(!evt.payload[type].hasOwnProperty(id)) continue;
+
+                if(!this.self.clientManager.doesClientExist(id)){
+                    console.log("_processUpdates: user does not exist!");
+                    continue;
+                }
+
+                if(!this.self.clientManager.isClientReady(id)){
+                    console.log("_processUpdates: client",id,"is not ready");
+                    continue;
+                }
+
+                //sends an event like which type/name looks like "onStateUpdateReceived_SWING"
+                this.self.emit(EVT_ON_STATE_UPDATE_RECEIVED+EVT_ON_STATE_UPDATE_RECEIVED_SEPERATOR+type,{
+                    //id:id,
+                    id:this.socket.clientId,
+                    type:type,
+                    data:evt.payload[type][id]
+                });
+            }
+        }
     }
 
     /**
@@ -306,11 +335,12 @@ class GameServer extends BaseServer{
                 }
 
                 if(!this.clientManager.isClientReady(id)){
-                    //console.log("_processUpdates: client",id,"is not ready");
+                    console.log("_processUpdates: client",id,"is not ready");
                     continue;
                 }
 
-                this.emit(EVT_ON_STATE_UPDATE_RECEIVED+EVT_ON_STATE_UPDATE_RECEIVED_SEPERATOR+id,{
+                //sends an event like which type/name looks like "onStateUpdateReceived_SWING"
+                this.emit(EVT_ON_STATE_UPDATE_RECEIVED+EVT_ON_STATE_UPDATE_RECEIVED_SEPERATOR+type,{
                     id:id,
                     type:type,
                     data:data[type][id]

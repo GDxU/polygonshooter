@@ -8,6 +8,7 @@ const Path = require('path');
 const fs = require('fs');
 
 const CONF = require('./minigolfconf.json');
+const MODES= require('./../../../core/entiymodes.json');
 
 const Util = require('./../../../core/util');
 const BaseServerModule = require('./../baseservermodule');
@@ -69,7 +70,9 @@ class MinigolfModule extends BaseServerModule{
          */
         this.gameEntities={};
 
-        this.listeningUpdates = [
+        this.players = {};
+
+        this.listeningUpdates = [  //TODO: von events json
             COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING
         ];
     }
@@ -77,8 +80,8 @@ class MinigolfModule extends BaseServerModule{
     init(data){
         super.init(data);
 
+        // register listener for every update
         for(let i = 0; i<this.listeningUpdates.length;i++) {
-            //TODO: von events json
             this.on("onStateUpdateReceived_" + this.listeningUpdates[i], (evt) => {
                 this._incomingUpdatesQueue.push(evt);
             });
@@ -99,11 +102,11 @@ class MinigolfModule extends BaseServerModule{
             return;
         }
 
-        for(let i=0; i< this._incomingUpdatesQueue.length; i++){
+    /*    for(let i=0; i< this._incomingUpdatesQueue.length; i++){
             // TODO: process update
             let cur = this._incomingUpdatesQueue[i];
         }
-        this._incomingUpdatesQueue = [];
+        this._incomingUpdatesQueue = [];*/
 
         Engine.update(this._engine, 1000 / this._ticks);
     }
@@ -139,6 +142,7 @@ class MinigolfModule extends BaseServerModule{
             body
         );*/
         let entityRaw = {
+            type:"player",
             position:{x:50,y:50},
             playerID:socket.clientData.id,
             hitArea: {
@@ -149,27 +153,44 @@ class MinigolfModule extends BaseServerModule{
         let entity = new ServerEntity(entityRaw);
 
         this.addEntity(entity);
+        entity.playerId = socket.clientId;
+        this.players[socket.clientId] = entity;
 
-        entity.velocity = {x:25,y:25};
+       // entity.velocity = {x:25,y:25};
 
         // send everyone the new client
-        this._broadcastExceptSender(
-            socket,
+        this._broadcast(
             COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,
-            {
-                type:"player",
-                entity:entityRaw,
+            COM.createEvent(
+                this.SERVER_ID,
+                {
+                //type:"player",
+                entity:entity.toJSON(), //entityRaw,
                 playerID:socket.clientData.id
-            }
+            })
         );
 
         return {
-            player:entity.toJSON()
+            playerEntityId:entity.id//entity.toJSON()
         };
     }
 
     onConnectionLost(socket){
         // remove client on disconnect
+
+        let player = this.players[socket.clientId];
+        // delete the references of the player
+       /* delete this.players[socket.clientId];
+        delete this.gameEntities[player.clientId];*/
+
+        let changes = player.setMode(MODES.QUIT);
+        if(changes) {
+            this._postUpdate(
+                COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE,
+                player.id,
+                {newMode: players.currentMode}
+            );
+        }
     }
 
     /**
@@ -230,7 +251,7 @@ class MinigolfModule extends BaseServerModule{
         // send the new map to every client
         this._broadcast(
             COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,
-            COM.createEvent(this.ID,{
+            COM.createEvent(this.SERVER_ID,{
                 width:this._currentMap.map.width,
                 height:this._currentMap.map.height,
                 tilesize:this._currentMap.map.tilesize,
@@ -251,10 +272,19 @@ class MinigolfModule extends BaseServerModule{
         switch (type) { // claim and release entiy is updaated first, becuase the other functions need the claim
             // an user copys an entity
             case COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING:
-                console.log("swing");
+                this._swing(id,data.velocity);
                 break;
             }
         }
+    }
+
+    _swing(id,velocity){
+        console.log("swing");
+        let player = this.players[id];
+      /*  player.velocity.x = velocity.x;
+        player.velocity.y = velocity.y;
+*/
+        player.velocity = velocity;
     }
 
     /**
@@ -269,12 +299,12 @@ class MinigolfModule extends BaseServerModule{
             return;
         }
 
-        if(this.gameEntities[entity.ID]){
+        if(this.gameEntities[entity.id]){
             console.log("addEntities: enitty already added!");
             return;
         }
 
-        this.gameEntities[entity.ID] = entity;
+        this.gameEntities[entity.id] = entity;
         World.add(this._engine.world,entity.body);
         entity.isAddedToWorld = true;
 
@@ -288,6 +318,10 @@ class MinigolfModule extends BaseServerModule{
                 }
             );
         }
+    }
+
+    removeEntity(entity,send){
+        throw "implement"; //TODO remiove entity
     }
 
     /**

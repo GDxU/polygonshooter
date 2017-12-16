@@ -14,18 +14,15 @@ const Util = require('./../../../core/util');
 
 const MinigolfConf = require('./minigolfconf.json');
 
-const MODES={
-        DEFAULT:"DEFAULT",
-       // SPAWNED:"SPAWNED",
-        MOVING:"MOVING",
-        OUT:"OUT"
-    };
+const MODES= require('./../../../core/entiymodes.json');
 
 class ServerEntity{
     constructor(data){
-        this.ID=uuidV1();
-        this.playerID = data.playerID ||"";
+        this.id=uuidV1();
+       // this.playerID = data.playerID ||"";
         this._body = null;
+
+        this.type = data.type || "none";
 
       //  this._state = this._createDefaultEntityState();
         // set the position of the _body
@@ -45,7 +42,7 @@ class ServerEntity{
                 throw "insuficient data in order to create the entity _body";
         }
 
-        this._body.ENTITY_ID = this.ID;
+        this._body.ENTITY_ID = this.id;
         this._body.entity = this;
 
         if(rotation) { //just rotate, if rotation is not equaling zero
@@ -178,23 +175,31 @@ class ServerEntity{
             case MODES.MOVING:
                 //this._body.frictionAir = MinigolfConf.GRABBED_ENTITY_FRICTION;
                 //this._body.isSensor = true;
-                this._currentMode = MODES.MOVING;
+        //        this._currentMode = MODES.MOVING;
                 break;
             case MODES.DEFAULT:
             default:
                 //this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
                 //this._body.collisionFilter=MinigolfConf.DEFAULT_COLISION_FILTER;
                 //this._body.isSensor = false;
-                this._currentMode = MODES.DEFAULT;
+          //      this._currentMode = MODES.DEFAULT;
                 break;
 
             case MODES.OUT:
                 this._body.isStatic = true;
-                this._currentMode = MODES.OUT;
+         //       this._currentMode = MODES.OUT;
                 break;
+            case MODES.QUIT:
+                console.log("quit");
+                this._body.isStatic = true;
+                this.velocity = {x:0,y:0};
+        //        this._currentMode = MODES.QUIT;
+            break;
             //case MODES.SPAWNED:
             //    break;
         }
+
+        this._currentMode = mode;
 
         return old !== this._currentMode;
     }
@@ -207,8 +212,9 @@ class ServerEntity{
         return {
             position:this.position,
             rotation:this.rotation,
-            ID:this.ID,
-            playerID: this.playerID,
+            id:this.id,
+            type:this.type,
+           // playerID: this.playerID,
        //     state:this._state,
             hitArea:this.hitArea
         };
