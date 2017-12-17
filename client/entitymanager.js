@@ -18,6 +18,12 @@ const EVT_ENTITY_MOVED = "entitymoved";
 
 const EVT_ON_PLAYER_RECEIVED = "onPlayerReceived";
 
+const EVT_PLAYER_OVER = "onPlayerMouseOver";
+const EVT_PLAYER_OUT = "onPlayerMouseOut";
+const EVT_PLAYER_DOWN = "onPlayerMouseDown";
+const EVT_PLAYER_UP = "onPlayerMouseUp";
+const EVT_PLAYER_UP_OUTSIDE = "onPlayerMouseUpOutside";
+
 class EntityManager extends PIXI.Container{
 
     constructor() {
@@ -138,8 +144,9 @@ class EntityManager extends PIXI.Container{
     initDataHandler(initDataEvt){
         if(!initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME]
             //|| !initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME].playerEntityId
-        )
-                throw "initdata is damaged,";
+        ) {
+            throw "initdata is damaged,";
+        }
 
         let mg = initDataEvt[COM.PROTOCOL.MODULES.MINIGOLF.MODULE_NAME];
         let general = initDataEvt[COM.PROTOCOL.GENERAL.MODULE_NAME];
@@ -150,11 +157,20 @@ class EntityManager extends PIXI.Container{
         // colorize all received players
         this.updatePlayerColor({colorUpdates:general.connectedClients});
 
+        // make the player entity interactable
         if(mg.playerEntityId) {
             this.playerEntityId = mg.playerEntityId;
             this.entities[this.playerEntityId].interactive = true;
+
+            this.entities[this.playerEntityId]
+                .on('mouseover', (e)=>this.emit(EVT_PLAYER_OVER,e), true)
+                .on('mouseout', (e)=>this.emit(EVT_PLAYER_OUT,e), true)
+                .on('mousedown', (e)=>this.emit(EVT_PLAYER_DOWN,e),true)
+                .on('mouseup', (e)=>this.emit(EVT_PLAYER_UP,e),true)
+                .on('mouseupoutside', (e)=>this.emit(EVT_PLAYER_UP_OUTSIDE,e) ,true);
+
         }
-        this.emit(EVT_ON_PLAYER_RECEIVED,{playerEntityId:this.playerEntityId});
+   //     this.emit(EVT_ON_PLAYER_RECEIVED,{playerEntityId:this.playerEntityId});
     }
 
     _applyTransformationUpdate(updates,timeSinceLastUpdate){

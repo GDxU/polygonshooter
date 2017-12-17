@@ -145,7 +145,7 @@ class MinigolfModule extends BaseServerModule{
         );*/
         let entityRaw = {
             type:ENTITYDESC.PLAYER.name,
-            position:{x:50,y:50},
+            position:{x:50,y:50},   //TODO: set position on map start position
             //playerID:socket.clientData.id,
             clientId:socket.clientData.id,
             hitArea: {
@@ -224,6 +224,8 @@ class MinigolfModule extends BaseServerModule{
                 {mode: player.currentMode}
             );
         }
+
+        //this.removeEntity(player.id);
     }
 
     /**
@@ -350,8 +352,18 @@ class MinigolfModule extends BaseServerModule{
         }
     }
 
-    removeEntity(entity,send){
-        throw "implement"; //TODO remiove entity
+    removeEntity(entityId,send){
+        if(!entityId || !this.gameEntities[entityId]){
+            console.log("Entity",entityId,"cannot be removed, because it does not exist!");
+            return;
+        }
+
+        if(this.players[entityId])
+            delete this.players[entityId];
+        let body = this.gameEntities[entityId]._body;
+        delete this.gameEntities[entityId];
+
+        World.remove(this._engine.world,body);
     }
 
     /**
