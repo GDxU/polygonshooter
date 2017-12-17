@@ -29,12 +29,14 @@ class GameManager extends EventEmitter3{
         this.mapManager = new MapManager();
         this.entityManager = new EntityManager();
         this.playerActionManager = new PlayerActionManager();
+        this.inputManager = new InputManager(this.app);
+        this.inputManager.loadMapping(CONFIG.KEY_MAPPING);
+
     }
 
     start(){
 
-        this.inputHandler = new InputManager(this.app);
-        this.inputHandler.loadMapping(CONFIG.KEY_MAPPING);
+
 
         //TODO von evts json
         this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,(map) => this.mapManager.onMapReceived(map));
@@ -50,7 +52,13 @@ class GameManager extends EventEmitter3{
         this.entityManager.on("onPlayerMouseDown",(e)=> this.playerActionManager.onPlayerMouseDown(e));
         this.entityManager.on("onPlayerMouseUp",(e)=> this.playerActionManager.onPlayerMouseUp(e));
         this.entityManager.on("onPlayerMouseUpOutside",(e)=> this.playerActionManager.onPlayerMouseUpOutside(e));
+        this.inputManager.on("mousemove",(e)=>this.playerActionManager.onMouseMove(e));
 
+        this.playerActionManager.on("onSwing",(e)=>{
+            this.synchronizer.sendStateUpdate(COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING,{
+                velocity:e.vector
+            })
+        });
 
 
         // TODO: remove test
@@ -70,6 +78,7 @@ class GameManager extends EventEmitter3{
       //  this.mapManager.addChild(this.entityManager);
         this.app.stage.addChild(this.mapManager);
         this.app.stage.addChild(this.entityManager);
+        this.app.stage.addChild(this.playerActionManager);
     }
 
     update(delta){

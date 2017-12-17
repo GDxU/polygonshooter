@@ -163,11 +163,11 @@ class EntityManager extends PIXI.Container{
             this.entities[this.playerEntityId].interactive = true;
 
             this.entities[this.playerEntityId]
-                .on('mouseover', (e)=>this.emit(EVT_PLAYER_OVER,e), true)
-                .on('mouseout', (e)=>this.emit(EVT_PLAYER_OUT,e), true)
-                .on('mousedown', (e)=>this.emit(EVT_PLAYER_DOWN,e),true)
-                .on('mouseup', (e)=>this.emit(EVT_PLAYER_UP,e),true)
-                .on('mouseupoutside', (e)=>this.emit(EVT_PLAYER_UP_OUTSIDE,e) ,true);
+                .on('mouseover', (e)=>this.emit(EVT_PLAYER_OVER,{interaction:e,entity:this.entities[this.playerEntityId]}), true)
+                .on('mouseout', (e)=>this.emit(EVT_PLAYER_OUT,{interaction:e,entity:this.entities[this.playerEntityId]}), true)
+                .on('mousedown', (e)=>this.emit(EVT_PLAYER_DOWN,{interaction:e,entity:this.entities[this.playerEntityId]}),true)
+                .on('mouseup', (e)=>this.emit(EVT_PLAYER_UP,{interaction:e,entity:this.entities[this.playerEntityId]}),true)
+                .on('mouseupoutside', (e)=>this.emit(EVT_PLAYER_UP_OUTSIDE,{interaction:e,entity:this.entities[this.playerEntityId]}) ,true);
 
         }
    //     this.emit(EVT_ON_PLAYER_RECEIVED,{playerEntityId:this.playerEntityId});
