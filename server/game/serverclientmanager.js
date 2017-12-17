@@ -52,7 +52,7 @@ class Client{
 
     get publicInfo (){
         return {
-            id:this.id,
+            id:this.id, //TODO: sollte beim clienten nicht gesendet werden- am client nur mit playerIndex arbeiten
             displayName:this.displayName,
             userStatus:this.userStatus,
             color:this.color,

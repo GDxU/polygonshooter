@@ -38,7 +38,13 @@ class ServerEntity{
         this.hitArea = data.hitArea;
         switch (data.hitArea.type) {
             case "circle":
-                this._body = Bodies.circle(x,y,data.hitArea.radius);
+                // { inertia: Infinity } disables angular velocity
+                if(this.type === ENTITYDESC.PLAYER.name){
+                    this._body = Bodies.circle(x,y,data.hitArea.radius,{ inertia: Infinity });
+                }else{
+                    this._body = Bodies.circle(x,y,data.hitArea.radius);
+                }
+
                 break;
             case "rectangle":
                 this._body = Bodies.rectangle(x,y,data.hitArea.width,data.hitArea.height);
@@ -193,6 +199,7 @@ class ServerEntity{
                 break;
             case MODES.QUIT:
                 this._body.isStatic = true;
+                this._body.isSensor = true;
                 this.velocity = {x:0,y:0};
         //        this._currentMode = MODES.QUIT;
             break;

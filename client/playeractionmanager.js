@@ -5,7 +5,7 @@
 'use strict';
 
 const Util = require('./../core/util');
-
+const Config = require('./config');
 
 
 const EVT_ON_SWING = "onSwing";
@@ -18,7 +18,7 @@ class PlayerActionManager extends PIXI.Container{
 
         this.line = null;
 
-        this.sensitivity = sensitivity || 0.0005;
+        this.sensitivity = sensitivity || Config.SWING.SENSITIVITY;
         this.max = max || 20;
 
         this.lineWidth = lineSize || 5;
