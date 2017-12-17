@@ -9,7 +9,8 @@ const EventEmitter3 = require('eventemitter3');
 const Synchronizer = require('./synchronizer');
 const MapManager = require('./mapmanager');
 const EntityManager = require('./entitymanager');
-const InputManager = require('./inputmanager')
+const InputManager = require('./inputmanager');
+const PlayerActionManager = require('./playeractionmanager');
 
 const CONFIG = require('./config.json');
 const COM = require("./../core/com");
@@ -27,6 +28,7 @@ class GameManager extends EventEmitter3{
 
         this.mapManager = new MapManager();
         this.entityManager = new EntityManager();
+        this.playerActionManager = new PlayerActionManager();
     }
 
     start(){
@@ -42,6 +44,13 @@ class GameManager extends EventEmitter3{
         //this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.ENTITY_ADDED,(entityEvt)=>this.entityManager.entityAddedHandler(entityEvt)); //TODO: add entitymanager
 
         this.synchronizer.on("onClientConnected",(initDataEvt)=>this.entityManager.initDataHandler(initDataEvt));
+
+        this.entityManager.on("onPlayerMouseOver",(e)=> this.playerActionManager.onPlayerMouseOver(e));
+        this.entityManager.on("onPlayerMouseOut",(e)=> this.playerActionManager.onPlayerMouseOut(e));
+        this.entityManager.on("onPlayerMouseDown",(e)=> this.playerActionManager.onPlayerMouseDown(e));
+        this.entityManager.on("onPlayerMouseUp",(e)=> this.playerActionManager.onPlayerMouseUp(e));
+        this.entityManager.on("onPlayerMouseUpOutside",(e)=> this.playerActionManager.onPlayerMouseUpOutside(e));
+
 
 
         // TODO: remove test
