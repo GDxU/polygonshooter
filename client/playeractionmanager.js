@@ -6,14 +6,20 @@
 
 const Util = require('./../core/util');
 
+
+
 const EVT_ON_SWING = "onSwing";
+
 
 class PlayerActionManager extends PIXI.Container{
 
-    constructor(lineSize,lineColor) {
-       super();
+    constructor(sensitivity,max,lineSize,lineColor) {
+        super();
 
-       this.line = null;
+        this.line = null;
+
+        this.sensitivity = sensitivity || 0.001;
+        this.max = max || 20;
 
         this.lineWidth = lineSize || 5;
         this.lineColor = lineColor || "0x000000";
@@ -57,19 +63,19 @@ class PlayerActionManager extends PIXI.Container{
         }
 
         //TODO: send swing event
-        let dist = Util.getVectorDistance(
+    /*    let dist = Util.getVectorDistance(
             this.line.entityPosition.x,
             this.line.entityPosition.y,
             evt.interaction.data.global.x,
             evt.interaction.data.global.y
-        );
+        );*/
 
         this.emit(EVT_ON_SWING,{
-            strength:dist,
+          //  strength:dist,
             target:evt.interaction.target,
             vector:{
-                x:this.line.entityPosition.x-evt.interaction.data.global.x,
-                y:this.line.entityPosition.y-evt.interaction.data.global.y
+                x:(this.line.entityPosition.x-evt.interaction.data.global.x)*this.sensitivity,
+                y:(this.line.entityPosition.y-evt.interaction.data.global.y)*this.sensitivity
             }
         });
 

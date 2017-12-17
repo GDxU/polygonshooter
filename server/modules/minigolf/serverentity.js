@@ -55,6 +55,8 @@ class ServerEntity{
         }
 
         this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
+        this._body.friction = MinigolfConf.ENTITY_FRICTION;
+        this._body.density = 0.0001;
 
         /**
          * name of the current mode
@@ -180,6 +182,8 @@ class ServerEntity{
                 //this._body.frictionAir = MinigolfConf.GRABBED_ENTITY_FRICTION;
                 //this._body.isSensor = true;
         //        this._currentMode = MODES.MOVING;
+               // this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
+               // this._body.friction = MinigolfConf.ENTITY_FRICTION;
                 break;
             case MODES.OUT:
                 this._body.isStatic = true;
@@ -195,6 +199,8 @@ class ServerEntity{
             case MODES.DEFAULT:
             default:
                 this._body.isStatic = false;
+             //   this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
+             //   this._body.friction = MinigolfConf.ENTITY_FRICTION;
                 this.velocity = {x:0,y:0};
                 //this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
                 //this._body.collisionFilter=MinigolfConf.DEFAULT_COLISION_FILTER;

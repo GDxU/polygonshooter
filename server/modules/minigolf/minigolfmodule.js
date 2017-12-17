@@ -28,7 +28,7 @@ const Engine = Matter.Engine,
     Body = Matter.Body;
 
 
-const SEND_PERCISION_POSITION = 3;
+const SEND_PERCISION_POSITION = 2;
 const SEND_PERCISION_ROTATION = 4;
 
 
@@ -316,7 +316,11 @@ class MinigolfModule extends BaseServerModule{
     _swing(id,velocity){
         console.log("swing",id,velocity);
         let player = this.players[id];
-        player.velocity = velocity;
+
+        if(player.currentMode === MODES.DEFAULT) {
+            //player.velocity = velocity;
+            player._body.force = velocity;
+        }
     }
 
     /**
