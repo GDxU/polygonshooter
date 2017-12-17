@@ -28,9 +28,6 @@ class GameManager extends EventEmitter3{
     }
 
     start(){
-
-
-
         //TODO von evts json
         this.synchronizer.on("on"+COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.MAP,(map) => this.mapManager.onMapReceived(map));
         this.synchronizer.on("onInitGame",(initDataEvt)=>this.mapManager.initDataHandler(initDataEvt));

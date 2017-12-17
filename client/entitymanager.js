@@ -51,21 +51,26 @@ class EntityManager extends PIXI.Container{
 
         for(let i=0;i< entities.length;i++) {
             let entityData = entities[i];
-            //  playerData.type = "circle";
+
+            // if the entity already exists, e.g. the client reconnects, do not create it again
+            if(this.entities[entityData.id]){
+                continue;
+            }
+
             entityData.appearance = ENTITYDESC[entityData.type || ENTITYDESC.NONE.name].appearance;
-            //entityData.appearance.color = COLORS.PLAYERS_COLORS[entityData.color];
+
+            // if the mode is quitted - set the quit color
+            if(entityData.mode === ENTITYMODES.QUIT){
+                entityData.appearance.color = COLORS.SPECIAL_COLORS.QUITTED;
+            }
 
             let entity = new Entity(entityData);
             this.entities[entityData.id] = entity;
 
             // if entity is a player, save it in the player list
-            if(entityData.type===ENTITYDESC.PLAYER.name){
+            if(entityData.type === ENTITYDESC.PLAYER.name){
                 entity.clientId = entityData.clientId;
                 this.players[entityData.clientId] = entity;
-
-                if(entityData.mode === ENTITYMODES.QUIT){
-                    entityData.appearance.colors = COLORS.SPECIAL_COLORS.QUITTED;
-                }
             }
 
             this.addChild(entity);
@@ -83,21 +88,35 @@ class EntityManager extends PIXI.Container{
                     this._applyTransformationUpdate(cur,data.timeSinceLastUpdate);
                     break;
                 case COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE:
-                    //TODO: mode update
-                    console.log("MODE:",cur);
+                    this.updatePlayerMode(cur);
+                    break;
+            }
+        }
+    }
+
+    updatePlayerMode(evt){
+        for(let entityId in evt) {
+            if (!evt.hasOwnProperty(entityId)) continue;
+
+            let cur = evt[entityId].mode;
+            switch(cur) {
+                case ENTITYMODES.QUIT:
+                    this.entities[entityId].mode = cur;
+                    this.entities[entityId].setColorString(COLORS.SPECIAL_COLORS.QUITTED);
+                    break;
+                default:
                     break;
             }
         }
     }
 
     updatePlayerColor(evt){
-        if(!evt || !evt.colorUpdates || ! evt.colorUpdates.length){
+        if(!evt || !evt.colorUpdates){
             console.error("no color updates passed");
             return;
         }
 
         let e = [].concat(evt.colorUpdates);
-
 
         for(let i=0; i< e.length;i++){
             let player = this.players[e[i].id];
@@ -138,7 +157,6 @@ class EntityManager extends PIXI.Container{
         this.emit(EVT_ON_PLAYER_RECEIVED,{playerEntityId:this.playerEntityId});
     }
 
-
     _applyTransformationUpdate(updates,timeSinceLastUpdate){
        // let updates = [].concat(updates);
         for(let id in updates){
@@ -171,6 +189,7 @@ class EntityManager extends PIXI.Container{
             console.warn("no transformation data for entity",entityID,"was passed");
             return;
         }
+
         let cur = this.entities[entityID];
 
         if(!force) {

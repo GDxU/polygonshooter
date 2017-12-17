@@ -23,6 +23,7 @@ class Entity extends PIXI.Sprite {
         this.rawData = entity;
 
         this.type = entity.type;
+        this.mode = entity.mode;
 
         this.interactive = entity.interactive || false;
 

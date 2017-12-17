@@ -221,7 +221,7 @@ class MinigolfModule extends BaseServerModule{
             this._postUpdate(
                 COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE,
                 player.id,
-                {newMode: player.currentMode}
+                {mode: player.currentMode}
             );
         }
     }
@@ -312,11 +312,8 @@ class MinigolfModule extends BaseServerModule{
     }
 
     _swing(id,velocity){
-        console.log("swing");
+        console.log("swing",id,velocity);
         let player = this.players[id];
-      /*  player.velocity.x = velocity.x;
-        player.velocity.y = velocity.y;
-*/
         player.velocity = velocity;
     }
 
@@ -439,7 +436,7 @@ class MinigolfModule extends BaseServerModule{
                 this._postUpdate(
                     COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE,
                     body.ENTITY_ID,
-                    {newMode:body.entity.currentMode}
+                    {mode:body.entity.currentMode}
                 );
             }
         }

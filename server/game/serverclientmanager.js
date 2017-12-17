@@ -111,10 +111,10 @@ class ClientManager{
         }else{
             for(let c=0; c < COLORS.PLAYERS_COLORS.length; c++){
                 // if color already assigned, continue
-                if(this.assignedColors[c]) continue;
+                if(this.assignedColors[c] || this.assignedColors[c] === 0) continue;
                 // otherwise set the color and break
                 clientInfo.color = c;
-                this.assignedColors[clientInfo.color] = c;
+                this.assignedColors[c] = clientInfo.id;
                 break;
             }
         }
@@ -127,10 +127,10 @@ class ClientManager{
         }else{
             for(let pi=0; pi < SharedConfig.MAX_PLAYERS; pi++){
                 // if playerIndex already assigned, continue
-                if(this.assignedColors[pi]) continue;
+                if(this.assignedColors[pi] || this.assignedColors[pi] === 0) continue;
                 // otherwise set the playerIndex and break
                 clientInfo.playerIndex = pi;
-                this.assignedPlayerIndexes[clientInfo.playerIndex] = pi;
+                this.assignedPlayerIndexes[pi] = clientInfo.id;
                 break;
             }
         }
