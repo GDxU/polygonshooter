@@ -49,6 +49,7 @@ class ServerEntity{
 
         this._body.ENTITY_ID = this.id;
         this._body.entity = this;
+        this.isAddedToWorld = false;
 
         if(rotation) { //just rotate, if rotation is not equaling zero
             Body.rotate(this._body, rotation);
@@ -56,7 +57,8 @@ class ServerEntity{
 
         this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
         this._body.friction = MinigolfConf.ENTITY_FRICTION;
-        this._body.density = 0.0001;
+        this._body.density = MinigolfConf.ENTITY_DENSITY;
+        this._body.restitution = MinigolfConf.ENTITY_RESTITUTION;
 
         /**
          * name of the current mode

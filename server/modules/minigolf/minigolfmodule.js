@@ -7,16 +7,15 @@ const Matter = require('matter-js');
 const Path = require('path');
 const fs = require('fs');
 
-const CONF = require('./minigolfconf.json');
-const MODES= require('./../../../core/entiymodes.json');
-
-const ENTITYDESC = require('./../../../core/entitydescription.json');
-
 const Util = require('./../../../core/util');
 const BaseServerModule = require('./../baseservermodule');
 const COM = require('./../../../core/com');
-
 const ServerEntity = require('./serverentity');
+const TileMapping = require('./../../../core/tilemapping');
+
+const CONF = require('./minigolfconf.json');
+const MODES= require('./../../../core/entiymodes.json');
+const ENTITYDESC = require('./../../../core/entitydescription.json');
 
 const Engine = Matter.Engine,
     Runner = Matter.Runner,
@@ -25,8 +24,9 @@ const Engine = Matter.Engine,
     MouseConstraint = Matter.MouseConstraint,
     World = Matter.World,
     Bodies = Matter.Bodies,
-    Body = Matter.Body;
-
+    Body = Matter.Body,
+    Events = Matter.Events,
+    Bounds = Matter.Bounds;
 
 const SEND_PERCISION_POSITION = 2;
 const SEND_PERCISION_ROTATION = 4;
@@ -77,6 +77,7 @@ class MinigolfModule extends BaseServerModule{
         this.listeningUpdates = [  //TODO: von events json
             COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING
         ];
+
     }
 
     init(data){
@@ -89,7 +90,7 @@ class MinigolfModule extends BaseServerModule{
             });
         }
 
-        setInterval(this._updateEngine.bind(this), 1000 / this._ticks);
+        setInterval(this._updateEngine.bind(this), /*1000 /*/ this._ticks);
 
         this._resetGame("","testmap");   //TODO: just test - remove
     }
@@ -278,9 +279,29 @@ class MinigolfModule extends BaseServerModule{
 
         // load the map
         this._currentMap = JSON.parse(fs.readFileSync(path).toString());
+        const tilesize = this._currentMap.map.tilesize;
+        const w = this._currentMap.map.width;
+        const h = this._currentMap.map.height;
+        const mapData = this._currentMap.map.data;
 
-        // TODO: create  bodies
-        // TODO: send bodies to clients
+        // TODO: create  bodies gscheid
+        let bodies = [];
+        for(let i=0; i<mapData.length;i++){
+            let x = (i%h)*tilesize;
+            let y = parseInt(i/h)*tilesize;
+
+            if(TileMapping.getStats(mapData[i]).isBlocking) {
+                let body = Bodies.rectangle(x, y, tilesize, tilesize);
+                body.isStatic = true;
+                bodies.push(body);
+                World.add(this._engine.world, body);
+            }
+        }
+
+       // World.add(this._engine.world,entity.body);
+        //entity.isAddedToWorld = true;
+
+
 
 
         // send the new map to every client
@@ -293,6 +314,66 @@ class MinigolfModule extends BaseServerModule{
                 data:this._currentMap.map.data
             })
         );
+/*
+        Events.on(this._engine, 'afterTick afterRender', function (event)
+        {
+// avoid tunneling
+            for (var i = 0; i < _world.bodies.length; i++)
+            {
+                var bodyA = _world.bodies[i];
+                if (bodyA.isStatic || bodyA.isSleeping)
+                {
+                    continue;
+                }
+                var outside = false;
+                var adjustX = 0;
+                var adjustY = 0;
+                var epsilon = 0.01;
+                if (bodyA.bounds.min.y + epsilon >= _world.bounds.max.y)
+                { // bottom
+                    adjustY = Math.abs(bodyA.bounds.max.y - _world.bounds.max.y);
+                    Body.translate(bodyA, {
+                        x: 0,
+                        y: -adjustY
+                    });
+                 //   bodyA.velocity.y = -1.0;
+                    outside = true;
+                }
+                if (bodyA.bounds.max.x - epsilon<= _world.bounds.min.x)
+                { // left
+                    //bodyA.velocity.x = 1.0;
+                    adjustX = Math.abs(bodyA.bounds.min.x - _world.bounds.min.x);
+                    Body.translate(bodyA, {
+                        x: adjustX,
+                        y: 0
+                    });
+                    outside = true;
+                }
+                if (bodyA.bounds.max.y - epsilon <= _world.bounds.min.y)
+                { // Top
+                    adjustY = Math.abs(bodyA.bounds.min.y - _world.bounds.min.y);
+                    Body.translate(bodyA, {
+                        x: 0,
+                        y: adjustY // since body.bounds.min.y is negative
+                    });
+                  //  bodyA.velocity.y = 1.0;
+                    outside = true;
+                }
+                if (bodyA.bounds.min.x + epsilon > _world.bounds.max.x)
+                { // right
+                   // bodyA.velocity.x = -1.0;adjustX = Math.abs(bodyA.bounds.max.x - _world.bounds.max.x);
+                    Body.translate(bodyA, {
+                        x: -adjustX,
+                        y: 0
+                    });
+                    outside = true;
+                }
+                if (outside)
+                {
+                    Bounds.update(bodyA.bounds, bodyA.vertices, bodyA.velocity);
+                }
+            }
+        });*/
 
         return true; // everything ok, map was loaded and sent to everyone
     }
@@ -364,10 +445,12 @@ class MinigolfModule extends BaseServerModule{
 
         if(this.players[entityId])
             delete this.players[entityId];
-        let body = this.gameEntities[entityId]._body;
+        let entity = this.gameEntities[entityId];
+        entity.isAddedToWorld = false;
+
         delete this.gameEntities[entityId];
 
-        World.remove(this._engine.world,body);
+        World.remove(this._engine.world,entity._body);
     }
 
     /**
@@ -379,6 +462,13 @@ class MinigolfModule extends BaseServerModule{
      * @private
      */
     _bodyUpdateOverwrite(body, deltaTime, timeScale, correction) {
+
+        // it is a static entity -> nothing more to do
+        if(!body.entity){
+            Body.update_original(body, deltaTime, timeScale, correction);
+            return;
+        }
+
         // before update
         // save the old values, to detect changes
         let oldData = {
@@ -432,9 +522,13 @@ class MinigolfModule extends BaseServerModule{
         let speed = Util.round(Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y),SEND_PERCISION_POSITION);
         let oldSpeed = Util.round(Math.sqrt(oldData.vel_x * oldData.vel_x + oldData.vel_y * oldData.vel_y),SEND_PERCISION_POSITION);
 
+        if(speed <= CONF.ENTITY_MIN_SPEED){
+            body.velocity={x:0,y:0};
+            speed = 0;
+        }
+
         if(speed !== oldSpeed){
             let modeUpdateRequired = false;
-            //TODO update mode
             if(speed === 0){    // it was moving, but now it is standing still
                 modeUpdateRequired = body.entity.setMode("DEFAULT");
             }

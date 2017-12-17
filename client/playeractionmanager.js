@@ -18,7 +18,7 @@ class PlayerActionManager extends PIXI.Container{
 
         this.line = null;
 
-        this.sensitivity = sensitivity || 0.001;
+        this.sensitivity = sensitivity || 0.0005;
         this.max = max || 20;
 
         this.lineWidth = lineSize || 5;
