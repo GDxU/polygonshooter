@@ -352,6 +352,13 @@ class Util {
         if(sentCallback)
             sentCallback({action:postAction, query:query});
     }
+
+    static meterToPixel(v){
+        return v*100;
+    }
+    static pixelToMeter(v){
+        return v/100;
+    }
 }
 
 module.exports = Util;

@@ -3,12 +3,30 @@
     "name":"PLAYER",
     "appearance": {
       "texture": "ball"
+    },
+    "fixture":{
+      "friction": 0.1,
+      "restitution": 0.99,
+      "density": 1,
+      "userData": "PLAYER"
+    },
+    "body":{
+      "linearDamping": 1.5,
+      "angularDamping": 1
     }
   },
   "NONE":{
-    "name":"none",
+    "name":"NONE",
     "appearance": {
       "texture": "missing_texture"
+    }
+  },
+  "WALL":{
+    "name":"WALL",
+    "fixture":{
+      "friction": 0.1,
+      "restitution": 0.9,
+      "userData": "WALL"
     }
   }
 }

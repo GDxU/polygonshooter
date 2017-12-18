@@ -17,16 +17,7 @@ const CONF = require('./minigolfconf.json');
 const MODES= require('./../../../core/entiymodes.json');
 const ENTITYDESC = require('./../../../core/entitydescription.json');
 
-const Engine = Matter.Engine,
-    Runner = Matter.Runner,
-    Composites = Matter.Composites,
-    Common = Matter.Common,
-    MouseConstraint = Matter.MouseConstraint,
-    World = Matter.World,
-    Bodies = Matter.Bodies,
-    Body = Matter.Body,
-    Events = Matter.Events,
-    Bounds = Matter.Bounds;
+const Planck = require('planck-js');
 
 const SEND_PERCISION_POSITION = 2;
 const SEND_PERCISION_ROTATION = 4;
@@ -48,8 +39,8 @@ class MinigolfModule extends BaseServerModule{
 
         // overwrite the original update method of Body,
         // to be able to detect and send position changes
-        Body.update_original = Body.update;
-        Body.update = this._bodyUpdateOverwrite.bind(this);
+        //Body.update_original = Body.update;
+        //Body.update = this._bodyUpdateOverwrite.bind(this);
 
         /**
          * caching the updates from the clients,
@@ -64,7 +55,9 @@ class MinigolfModule extends BaseServerModule{
          * @type {Matterjs.Engine}
          * @private
          */
-        this._engine = null;
+       // this._engine = null;
+
+        this._world = null;
 
         /**
          * contains all entities (not map)
@@ -72,11 +65,14 @@ class MinigolfModule extends BaseServerModule{
          */
         this.gameEntities={};
 
+        this.previousEntityValues={};
+
         this.players = {};
 
         this.listeningUpdates = [  //TODO: von events json
             COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING
         ];
+
 
     }
 
@@ -90,7 +86,7 @@ class MinigolfModule extends BaseServerModule{
             });
         }
 
-        setInterval(this._updateEngine.bind(this), /*1000 /*/ this._ticks);
+        setInterval(this._updateEngine.bind(this), 1000 * this._ticks);
 
         this._resetGame("","testmap");   //TODO: just test - remove
     }
@@ -100,7 +96,7 @@ class MinigolfModule extends BaseServerModule{
      * @private
      */
     _updateEngine(){
-        if(!this._engine){
+        if(!this._world){
             this._incomingUpdatesQueue = [];
             return;
         }
@@ -111,7 +107,33 @@ class MinigolfModule extends BaseServerModule{
         }
         this._incomingUpdatesQueue = [];*/
 
-        Engine.update(this._engine, 1000 / this._ticks);
+       // Engine.update(this._engine, 1000 / this._ticks);
+
+        this._world.step(this._ticks);
+
+        // iterate over bodies and fixtures
+      /*  for (let body = this._world.getBodyList(); body; body = body.getNext()) {
+            for (let fixture = body.getFixtureList(); fixture; fixture = fixture.getNext()) {
+                // draw or update fixture
+            }
+        }*/
+
+        for(let e in this.gameEntities){
+            if(!this.gameEntities.hasOwnProperty(e)) continue;
+
+            let vel = this.gameEntities[e].body.getLinearVelocity();
+            let pos = this.gameEntities[e].body.getPosition();
+            let newData = {
+                position:pos,
+                velocity:vel
+            };
+
+            this._bodyUpdateOverwrite(this.previousEntityValues[e],newData,this.gameEntities[e]);
+            this.previousEntityValues[e] = newData;
+        }
+
+        this._processUpdates(this._incomingUpdatesQueue);
+        this._incomingUpdatesQueue = [];
     }
 
     onConnectionReceived(socket){
@@ -154,10 +176,19 @@ class MinigolfModule extends BaseServerModule{
                 radius: this._currentMap.map.tilesize / 4
             }
         };
-        let entity = new ServerEntity(entityRaw);
 
-        this.addEntity(entity);
+        let entity = new ServerEntity(entityRaw,this._world);
+
+       // this.addEntity(entity);
         this.players[socket.clientData.id] = entity;
+        this.gameEntities[entity.id] = entity;
+
+        let vel = entity.body.getLinearVelocity();
+        let pos = entity.body.getPosition();
+        this.previousEntityValues[entity.id] = {
+            position:pos,
+            velocity:vel
+        };
 
        // entity.velocity = {x:25,y:25};
 
@@ -240,6 +271,10 @@ class MinigolfModule extends BaseServerModule{
         // create path to the map
         let path = Path.join(appRoot,CONF.MAP_DIRECTORY,userName,mapName+".json");
 
+        this.previousEntityValues={};
+        this.gameEntities = {};
+        this.players = {};
+
         // if map does not exists - send error to client
         if(!fs.existsSync(path)){
             this._broadcastErrorToClient(COM.PROTOCOL.MODULES.MINIGOLF.ERRORS.MAP_DOES_NOT_EXIST);
@@ -247,13 +282,13 @@ class MinigolfModule extends BaseServerModule{
             return false; // nothing loaded
         }
 
-        this._engine = Engine.create();
         // no gravity, because topdown
-        this._engine.world.gravity.y = this._engine.world.gravity.x= 0;
+        this._world = Planck.World({});
+
 
         // add before update event, so that all received updates from the clients
         // can be executed before an engine-step
-        Matter.Events.on(this._engine,'afterUpdate', () => {
+    /*    Matter.Events.on(this._engine,'afterUpdate', () => {
             // process all updates
             this._processUpdates(this._incomingUpdatesQueue);
 
@@ -263,19 +298,7 @@ class MinigolfModule extends BaseServerModule{
             // emit an event, so that other processes can also hook in
             this.sharedEvents.emit(EVT_AFTER_UPDATE);
         });
-
-        // sets the listeners, which are needed for stacking and so on
-        Matter.Events.on(this._engine,'collisionActive',this._collisionActive.bind(this));
-        Matter.Events.on(this._engine,'collisionEnd',this._collisionEnd.bind(this));
-        Matter.Events.on(this._engine,'collisionStart',this._collisionStart.bind(this));
-
-
-        // add before update event, so that all received updates from the clients
-        // can be executed before an engine-step
-      /*  Matter.Events.on(this.engine,
-            'afterUpdate', function () {
-                this.emit(EVT_BEFORE_UPDATE);
-            }.bind(this));*/
+*/
 
         // load the map
         this._currentMap = JSON.parse(fs.readFileSync(path).toString());
@@ -285,24 +308,27 @@ class MinigolfModule extends BaseServerModule{
         const mapData = this._currentMap.map.data;
 
         // TODO: create  bodies gscheid
-        let bodies = [];
+
         for(let i=0; i<mapData.length;i++){
             let x = (i%h)*tilesize;
             let y = parseInt(i/h)*tilesize;
 
             if(TileMapping.getStats(mapData[i]).isBlocking) {
-                let body = Bodies.rectangle(x, y, tilesize, tilesize);
-                body.isStatic = true;
-                bodies.push(body);
-                World.add(this._engine.world, body);
+
+                let entityRaw = {
+                    type:ENTITYDESC.WALL.name,
+                    position:{x:x,y:y},   //TODO: set position on map start position
+                    //playerID:socket.clientData.id,
+                    isStatic:true,
+                    hitArea: {
+                        type:"rectangle",
+                        width: tilesize/2,
+                        height:tilesize/2
+                    }
+                };
+                new ServerEntity(entityRaw,this._world);
             }
         }
-
-       // World.add(this._engine.world,entity.body);
-        //entity.isAddedToWorld = true;
-
-
-
 
         // send the new map to every client
         this._broadcast(
@@ -314,66 +340,6 @@ class MinigolfModule extends BaseServerModule{
                 data:this._currentMap.map.data
             })
         );
-/*
-        Events.on(this._engine, 'afterTick afterRender', function (event)
-        {
-// avoid tunneling
-            for (var i = 0; i < _world.bodies.length; i++)
-            {
-                var bodyA = _world.bodies[i];
-                if (bodyA.isStatic || bodyA.isSleeping)
-                {
-                    continue;
-                }
-                var outside = false;
-                var adjustX = 0;
-                var adjustY = 0;
-                var epsilon = 0.01;
-                if (bodyA.bounds.min.y + epsilon >= _world.bounds.max.y)
-                { // bottom
-                    adjustY = Math.abs(bodyA.bounds.max.y - _world.bounds.max.y);
-                    Body.translate(bodyA, {
-                        x: 0,
-                        y: -adjustY
-                    });
-                 //   bodyA.velocity.y = -1.0;
-                    outside = true;
-                }
-                if (bodyA.bounds.max.x - epsilon<= _world.bounds.min.x)
-                { // left
-                    //bodyA.velocity.x = 1.0;
-                    adjustX = Math.abs(bodyA.bounds.min.x - _world.bounds.min.x);
-                    Body.translate(bodyA, {
-                        x: adjustX,
-                        y: 0
-                    });
-                    outside = true;
-                }
-                if (bodyA.bounds.max.y - epsilon <= _world.bounds.min.y)
-                { // Top
-                    adjustY = Math.abs(bodyA.bounds.min.y - _world.bounds.min.y);
-                    Body.translate(bodyA, {
-                        x: 0,
-                        y: adjustY // since body.bounds.min.y is negative
-                    });
-                  //  bodyA.velocity.y = 1.0;
-                    outside = true;
-                }
-                if (bodyA.bounds.min.x + epsilon > _world.bounds.max.x)
-                { // right
-                   // bodyA.velocity.x = -1.0;adjustX = Math.abs(bodyA.bounds.max.x - _world.bounds.max.x);
-                    Body.translate(bodyA, {
-                        x: -adjustX,
-                        y: 0
-                    });
-                    outside = true;
-                }
-                if (outside)
-                {
-                    Bounds.update(bodyA.bounds, bodyA.vertices, bodyA.velocity);
-                }
-            }
-        });*/
 
         return true; // everything ok, map was loaded and sent to everyone
     }
@@ -400,7 +366,9 @@ class MinigolfModule extends BaseServerModule{
 
         if(player.currentMode === MODES.DEFAULT) {
             //player.velocity = velocity;
-            player._body.force = velocity;
+            let vec = new Planck.Vec2(Util.pixelToMeter(velocity.x),Util.pixelToMeter(velocity.y));
+           // player._body.applyLinearImpulse(vec);
+            player._body.applyForceToCenter(vec, true);
         }
     }
 
@@ -410,7 +378,7 @@ class MinigolfModule extends BaseServerModule{
      * @param send true, if the entity should be broadcasted to the clients
      * @private
      */
-    addEntity(entity,send){
+    /*addEntity(entity,send){
         if(!entity){
             console.warn("addEntities: no entity passed!");
             return;
@@ -435,9 +403,9 @@ class MinigolfModule extends BaseServerModule{
                 }
             );
         }
-    }
+    }*/
 
-    removeEntity(entityId,send){
+    /*removeEntity(entityId,send){
         if(!entityId || !this.gameEntities[entityId]){
             console.log("Entity",entityId,"cannot be removed, because it does not exist!");
             return;
@@ -451,7 +419,7 @@ class MinigolfModule extends BaseServerModule{
         delete this.gameEntities[entityId];
 
         World.remove(this._engine.world,entity._body);
-    }
+    }*/
 
     /**
      * overwrites the MATTER-JS in order to be able to detect position or angle changes
@@ -461,76 +429,66 @@ class MinigolfModule extends BaseServerModule{
      * @param correction
      * @private
      */
-    _bodyUpdateOverwrite(body, deltaTime, timeScale, correction) {
-
-        // it is a static entity -> nothing more to do
-        if(!body.entity){
-            Body.update_original(body, deltaTime, timeScale, correction);
-            return;
-        }
-
+    _bodyUpdateOverwrite(oldData,newData,entity) {
         // before update
         // save the old values, to detect changes
-        let oldData = {
+       /* let oldData = {
             x: body.position.x,
             y: body.position.y,
             vel_x:body.velocity.x,
             vel_y:body.velocity.y,
             angle: body.angle
-        };
-
-        // call the original update method
-        Body.update_original(body, deltaTime, timeScale, correction);//.bind(Body);
+        };*/
 
         //after update
-        if(body.onInitOnce){
+        /*if(body.onInitOnce){
             body.onInitOnce();
             delete body.onInitOnce;
-        }
+        }*/
 
         let updateRequired = false;
         let data ={};
 
         // send just the changed values, values are rounded,
         // because it is not necessary to send 0.0001 changes
-        if (Util.round(oldData.x,SEND_PERCISION_POSITION) !== Util.round(body.position.x,SEND_PERCISION_POSITION)){
+        if (Util.round(oldData.x,SEND_PERCISION_POSITION) !== Util.round(newData.position.x,SEND_PERCISION_POSITION)){
             data.position = data.position || {};
-            data.position.x = body.position.x;
+            data.position.x = Util.meterToPixel(newData.position.x);
             updateRequired=true;
         }
-        if(Util.round(oldData.y,SEND_PERCISION_POSITION) !== Util.round(body.position.y,SEND_PERCISION_POSITION) ){
+        if(Util.round(oldData.y,SEND_PERCISION_POSITION) !== Util.round(newData.position.y,SEND_PERCISION_POSITION) ){
             data.position = data.position || {};
-            data.position.y = body.position.y;
+            data.position.y = Util.meterToPixel(newData.position.y);
             updateRequired=true;
         }
-        if(Util.round(oldData.angle,SEND_PERCISION_ROTATION) !== Util.round(body.angle,SEND_PERCISION_ROTATION)){
-            data.angle = body.angle;
+        /*if(Util.round(oldData.angle,SEND_PERCISION_ROTATION) !== Util.round(newData.angle,SEND_PERCISION_ROTATION)){
+            data.angle = newData.angle;
             updateRequired=true;
-        }
+        }*/
 
         // if the _body has not changed, nothing to do, nothing to send
         if(updateRequired) {
             this._postUpdate(
                 COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_TRANSFORMATION_UPDATE,
-                body.ENTITY_ID,
+                entity.id,
                 data
             );
         }
 
         // check if the mode has changed
 
-        let speed = Util.round(Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y),SEND_PERCISION_POSITION);
-        let oldSpeed = Util.round(Math.sqrt(oldData.vel_x * oldData.vel_x + oldData.vel_y * oldData.vel_y),SEND_PERCISION_POSITION);
+        let speed = Util.round(Math.sqrt(newData.velocity.x * newData.velocity.x + newData.velocity.y * newData.velocity.y),SEND_PERCISION_POSITION);
+        let oldSpeed = Util.round(Math.sqrt(oldData.velocity.x * oldData.velocity.x + oldData.velocity.y * oldData.velocity.y),SEND_PERCISION_POSITION);
 
         if(speed <= CONF.ENTITY_MIN_SPEED){
-            body.velocity={x:0,y:0};
+            entity.body.setLinearVelocity(new Planck.Vec2(0,0));
             speed = 0;
         }
 
         if(speed !== oldSpeed){
             let modeUpdateRequired = false;
             if(speed === 0){    // it was moving, but now it is standing still
-                modeUpdateRequired = body.entity.setMode("DEFAULT");
+                modeUpdateRequired = entity.setMode("DEFAULT");
             }
 
             // if it is moving, but new speed is not zero
@@ -538,15 +496,15 @@ class MinigolfModule extends BaseServerModule{
             // dunno why
             if(oldSpeed !== speed && speed !== 0 ){
                 // if(oldSpeed === 0 && speed !== 0){       // if it was not moving, but now it is moving
-                modeUpdateRequired = body.entity.setMode("MOVING");
+                modeUpdateRequired = entity.setMode("MOVING");
             }
 
             //if mode has changed, send update
             if(modeUpdateRequired) {
                 this._postUpdate(
                     COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_CLIENT.ENTITY_MODE_UPDATE,
-                    body.ENTITY_ID,
-                    {mode:body.entity.currentMode}
+                    entity.id,
+                    {mode:entity.currentMode}
                 );
             }
         }

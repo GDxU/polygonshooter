@@ -5,10 +5,8 @@
 'use strict';
 
 const uuidV1 = require('uuid/v1');
-const Matter = require('matter-js');
 
-const Bodies = Matter.Bodies;
-const Body = Matter.Body;
+const Planck = require('planck-js');
 
 const Util = require('./../../../core/util');
 
@@ -18,8 +16,11 @@ const MODES= require('./../../../core/entiymodes.json');
 const ENTITYDESC = require('./../../../core/entitydescription.json');
 
 class ServerEntity{
-    constructor(data){
-        this.id=uuidV1();
+    constructor(data,world){
+        if(!data) throw "no entitydata passed";
+        if(!world) throw "cannot create entity without world";
+
+        this.id=data.id || uuidV1();
         /**
          * optional player ID, if the entity corresponds to a player
          */
@@ -31,23 +32,31 @@ class ServerEntity{
 
       //  this._state = this._createDefaultEntityState();
         // set the position of the _body
-        let x=(data.position || {}).x || 0;
-        let y=(data.position || {}).y || 0;
-        let rotation=data.rotation || 0;
+        let x=Util.pixelToMeter((data.position || {}).x || 0);
+        let y=Util.pixelToMeter((data.position || {}).y || 0);
+      //  let rotation=data.rotation || 0;
 
         this.hitArea = data.hitArea;
+
+        if(!data.isStatic) {
+            this._body = world.createDynamicBody(ENTITYDESC[this.type].body);
+        }else{
+            this._body = world.createBody(/*ENTITYDESC[this.type].body*/);
+        }
+        this._body.setPosition({x:x,y:y});
+
         switch (data.hitArea.type) {
             case "circle":
-                // { inertia: Infinity } disables angular velocity
+                this._body.createFixture(Planck.Circle(Util.pixelToMeter(data.hitArea.radius)),ENTITYDESC[this.type].fixture);
+
                 if(this.type === ENTITYDESC.PLAYER.name){
-                    this._body = Bodies.circle(x,y,data.hitArea.radius,{ inertia: Infinity });
-                }else{
-                    this._body = Bodies.circle(x,y,data.hitArea.radius);
+                    this._body.setBullet(true);
                 }
 
                 break;
             case "rectangle":
-                this._body = Bodies.rectangle(x,y,data.hitArea.width,data.hitArea.height);
+              //  this._body = Bodies.rectangle(x,y,data.hitArea.width,data.hitArea.height);
+                this._body.createFixture(Planck.Box(Util.pixelToMeter(data.hitArea.width),Util.pixelToMeter(data.hitArea.height)), ENTITYDESC[this.type].fixture);
                 break;
             default:
                 throw "insuficient data in order to create the entity _body";
@@ -55,16 +64,6 @@ class ServerEntity{
 
         this._body.ENTITY_ID = this.id;
         this._body.entity = this;
-        this.isAddedToWorld = false;
-
-        if(rotation) { //just rotate, if rotation is not equaling zero
-            Body.rotate(this._body, rotation);
-        }
-
-        this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
-        this._body.friction = MinigolfConf.ENTITY_FRICTION;
-        this._body.density = MinigolfConf.ENTITY_DENSITY;
-        this._body.restitution = MinigolfConf.ENTITY_RESTITUTION;
 
         /**
          * name of the current mode
@@ -79,7 +78,7 @@ class ServerEntity{
          * if true, then the entity is set to the gameManager/ world
          * @type {boolean}
          */
-        this.isAddedToWorld = false;
+        this.isAddedToWorld = true;
     }
 
 
@@ -92,13 +91,13 @@ class ServerEntity{
      * @returns {{x, y}}
      */
     get position() {
-        let p = (this._body || {}).position || {};
+        let p = this._body.getPosition();
         return {
             get x() {
-                return p.x || 0;
+                return Util.meterToPixel(p.x || 0);
             },
             get y() {
-                return p.y || 0;
+                return Util.meterToPixel(p.y || 0);
             }
         }
     }
@@ -108,14 +107,14 @@ class ServerEntity{
      * @param v {{x, y}}
      */
     set position(v){
-        Body.setPosition(this._body, {
-            x: v.x || 0,
-            y: v.y || 0
+        this._body.setPosition( {
+            x: Util.pixelToMeter(v.x || 0),
+            y: Util.pixelToMeter(v.y || 0)
         });
     }
 
     get velocity() {
-        let p = (this._body || {}).velocity || {};
+        let p = this._body.getLinearVelocity();
         return {
             get x() {
                 return p.x || 0;
@@ -127,12 +126,9 @@ class ServerEntity{
     }
 
     set velocity(v){
-        Body.setVelocity(this._body, {
-            x: v.x || 0,
-            y: v.y || 0
-        });
+        this._body.setLinearVelocity(new Planck.Vec2(v.x || 0,v.y || 0));
     }
-
+/*
     get angularVelocity() {
         let p = (this._body || {}).angularVelocity || 0;
         return p;
@@ -141,42 +137,42 @@ class ServerEntity{
     set angularVelocity(v){
         Body.setAngularVelocity(this._body, v);
     }
-
+*/
 
     get body(){
         return this._body;
     }
 
-    get state(){
+  /*  get state(){
         return this._state;
-    }
+    }*/
 
-    get rotation(){
+   /* get rotation(){
         return this._body.angle;
     }
-
+*/
     /**
      * sets the rotation of the entity directly
      * @param v
      */
-    set rotation(v){
+ /*   set rotation(v){
         if(typeof v !== "number"){
             console.log("rotation can only be a number!");
             return;
         }
         Body.rotate(this._body,v);
-    }
+    }*/
 
     /**
      * uses velocity to rotate the entity
      * @param rotationAmount
      */
-    rotateEntity(rotationAmount){
+  /*  rotateEntity(rotationAmount){
         // multiply the passed value by the rotation speed
         Body.setAngularVelocity(this._body,rotationAmount);
         // changes will be postet in the engine.update overrite method,
         // because the changes are done during the enigne step
-    }
+    }*/
 
     /**
      *
@@ -194,11 +190,11 @@ class ServerEntity{
                // this._body.friction = MinigolfConf.ENTITY_FRICTION;
                 break;
             case MODES.OUT:
-                this._body.isStatic = true;
+               // this._body.isStatic = true;
          //       this._currentMode = MODES.OUT;
                 break;
             case MODES.QUIT:
-                this._body.isStatic = true;
+               // this._body.isStatic = true;
                 this._body.isSensor = true;
                 this.velocity = {x:0,y:0};
         //        this._currentMode = MODES.QUIT;
@@ -207,7 +203,7 @@ class ServerEntity{
             //    break;
             case MODES.DEFAULT:
             default:
-                this._body.isStatic = false;
+               // this._body.isStatic = false;
              //   this._body.frictionAir = MinigolfConf.ENTITY_FRICTION;
              //   this._body.friction = MinigolfConf.ENTITY_FRICTION;
                 this.velocity = {x:0,y:0};
@@ -230,7 +226,7 @@ class ServerEntity{
     toJSON(){
         return {
             position:this.position,
-            rotation:this.rotation,
+         //   rotation:this.rotation,
             id:this.id,
             type:this.type,
             clientId: this.clientId,
