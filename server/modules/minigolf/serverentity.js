@@ -49,14 +49,16 @@ class ServerEntity{
             case "circle":
                 this._body.createFixture(Planck.Circle(Util.pixelToMeter(data.hitArea.radius)),ENTITYDESC[this.type].fixture);
 
+                // TODO: neue subklasse oder so machn
                 if(this.type === ENTITYDESC.PLAYER.name){
                     this._body.setBullet(true);
+                    this._body.setFixedRotation(true);
                 }
 
                 break;
             case "rectangle":
               //  this._body = Bodies.rectangle(x,y,data.hitArea.width,data.hitArea.height);
-                this._body.createFixture(Planck.Box(Util.pixelToMeter(data.hitArea.width),Util.pixelToMeter(data.hitArea.height)), ENTITYDESC[this.type].fixture);
+                this._body.createFixture(Planck.Box(Util.pixelToMeter(data.hitArea.width/2),Util.pixelToMeter(data.hitArea.height/2)), ENTITYDESC[this.type].fixture);
                 break;
             default:
                 throw "insuficient data in order to create the entity _body";

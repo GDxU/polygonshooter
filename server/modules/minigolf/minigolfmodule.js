@@ -72,8 +72,6 @@ class MinigolfModule extends BaseServerModule{
         this.listeningUpdates = [  //TODO: von events json
             COM.PROTOCOL.MODULES.MINIGOLF.STATE_UPDATE.TO_SERVER.SWING
         ];
-
-
     }
 
     init(data){
@@ -123,9 +121,11 @@ class MinigolfModule extends BaseServerModule{
 
             let vel = this.gameEntities[e].body.getLinearVelocity();
             let pos = this.gameEntities[e].body.getPosition();
+            let angle = this.gameEntities[e].body.getAngle();
             let newData = {
-                position:pos,
-                velocity:vel
+                position:{x:pos.x,y:pos.y}, // need to copy object, because pos and vel are of type Vec2
+                velocity:{x:vel.x,y:vel.y},
+                angle:angle
             };
 
             this._bodyUpdateOverwrite(this.previousEntityValues[e],newData,this.gameEntities[e]);
@@ -185,9 +185,11 @@ class MinigolfModule extends BaseServerModule{
 
         let vel = entity.body.getLinearVelocity();
         let pos = entity.body.getPosition();
+        let angle = entity.body.getAngle();
         this.previousEntityValues[entity.id] = {
-            position:pos,
-            velocity:vel
+            position:{x:pos.x,y:pos.y}, // need to copy object, because pos and vel are of type Vec2
+            velocity:{x:vel.x,y:vel.y},
+            angle:angle
         };
 
        // entity.velocity = {x:25,y:25};
@@ -322,8 +324,8 @@ class MinigolfModule extends BaseServerModule{
                     isStatic:true,
                     hitArea: {
                         type:"rectangle",
-                        width: tilesize/2,
-                        height:tilesize/2
+                        width: tilesize,
+                        height:tilesize
                     }
                 };
                 new ServerEntity(entityRaw,this._world);
@@ -461,10 +463,10 @@ class MinigolfModule extends BaseServerModule{
             data.position.y = Util.meterToPixel(newData.position.y);
             updateRequired=true;
         }
-        /*if(Util.round(oldData.angle,SEND_PERCISION_ROTATION) !== Util.round(newData.angle,SEND_PERCISION_ROTATION)){
+        if(Util.round(oldData.angle,SEND_PERCISION_ROTATION) !== Util.round(newData.angle,SEND_PERCISION_ROTATION)){
             data.angle = newData.angle;
             updateRequired=true;
-        }*/
+        }
 
         // if the _body has not changed, nothing to do, nothing to send
         if(updateRequired) {
@@ -477,14 +479,19 @@ class MinigolfModule extends BaseServerModule{
 
         // check if the mode has changed
 
-        let speed = Util.round(Math.sqrt(newData.velocity.x * newData.velocity.x + newData.velocity.y * newData.velocity.y),SEND_PERCISION_POSITION);
-        let oldSpeed = Util.round(Math.sqrt(oldData.velocity.x * oldData.velocity.x + oldData.velocity.y * oldData.velocity.y),SEND_PERCISION_POSITION);
+        let speed = Math.sqrt(newData.velocity.x * newData.velocity.x + newData.velocity.y * newData.velocity.y);
+        let oldSpeed = Math.sqrt(oldData.velocity.x * oldData.velocity.x + oldData.velocity.y * oldData.velocity.y);
 
-        if(speed <= CONF.ENTITY_MIN_SPEED){
+      //  let speedR = Util.round(Math.sqrt(newData.velocity.x * newData.velocity.x + newData.velocity.y * newData.velocity.y),SEND_PERCISION_POSITION);
+       // let oldSpeedR = Util.round(Math.sqrt(oldData.velocity.x * oldData.velocity.x + oldData.velocity.y * oldData.velocity.y),SEND_PERCISION_POSITION);
+
+        if(speed !== 0 && speed <= CONF.ENTITY_MIN_SPEED){
             entity.body.setLinearVelocity(new Planck.Vec2(0,0));
             speed = 0;
+            console.log("cap speed");
         }
 
+        console.log("-",speed,oldSpeed);
         if(speed !== oldSpeed){
             let modeUpdateRequired = false;
             if(speed === 0){    // it was moving, but now it is standing still
@@ -494,7 +501,8 @@ class MinigolfModule extends BaseServerModule{
             // if it is moving, but new speed is not zero
             // it can happen, that old speed is not zero, when starting velocity
             // dunno why
-            if(oldSpeed !== speed && speed !== 0 ){
+            if(oldSpeed === 0 && speed !== 0 ){
+            //if(oldSpeed === 0 && speed !== 0 ){
                 // if(oldSpeed === 0 && speed !== 0){       // if it was not moving, but now it is moving
                 modeUpdateRequired = entity.setMode("MOVING");
             }
@@ -507,7 +515,11 @@ class MinigolfModule extends BaseServerModule{
                     {mode:entity.currentMode}
                 );
             }
+
+            console.log("mode",entity.currentMode);
         }
+
+        console.log("---------------");
     }
 
     /**
