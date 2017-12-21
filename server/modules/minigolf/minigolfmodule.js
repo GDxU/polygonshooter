@@ -3,7 +3,6 @@
  */
 
 'use strict';
-const Matter = require('matter-js');
 const Path = require('path');
 const fs = require('fs');
 
@@ -22,8 +21,8 @@ const Planck = require('planck-js');
 const SEND_PERCISION_POSITION = 2;
 const SEND_PERCISION_ROTATION = 4;
 
-
-const EVT_AFTER_UPDATE = "afterUpdate";
+const Attractor = require('./physics/attractor');
+const GoalChecker = require('./physics/goalchecker');
 
 class MinigolfModule extends BaseServerModule{
 
@@ -58,6 +57,7 @@ class MinigolfModule extends BaseServerModule{
        // this._engine = null;
 
         this._world = null;
+        this.physicsModules = [];
 
         /**
          * contains all entities (not map)
@@ -95,18 +95,11 @@ class MinigolfModule extends BaseServerModule{
      */
     _updateEngine(){
         if(!this._world){
-            this._incomingUpdatesQueue = [];
+           // this._incomingUpdatesQueue = [];
             return;
         }
 
-    /*    for(let i=0; i< this._incomingUpdatesQueue.length; i++){
-            // TODO: process update
-            let cur = this._incomingUpdatesQueue[i];
-        }
-        this._incomingUpdatesQueue = [];*/
-
-       // Engine.update(this._engine, 1000 / this._ticks);
-
+        //TODO: lieber fps nehmen ?
         this._world.step(this._ticks);
 
         // iterate over bodies and fixtures
@@ -128,12 +121,18 @@ class MinigolfModule extends BaseServerModule{
                 angle:angle
             };
 
+            //this._world.destroyBody()
+
             this._bodyUpdateOverwrite(this.previousEntityValues[e],newData,this.gameEntities[e]);
             this.previousEntityValues[e] = newData;
         }
 
         this._processUpdates(this._incomingUpdatesQueue);
         this._incomingUpdatesQueue = [];
+
+        for(let i=0; i<this.physicsModules.length;i++){
+            this.physicsModules[i].update(this._ticks);
+        }
     }
 
     onConnectionReceived(socket){
@@ -276,6 +275,10 @@ class MinigolfModule extends BaseServerModule{
         this.previousEntityValues={};
         this.gameEntities = {};
         this.players = {};
+        this.physicsModules = [];
+        this._incomingUpdatesQueue=[];
+
+
 
         // if map does not exists - send error to client
         if(!fs.existsSync(path)){
@@ -287,6 +290,12 @@ class MinigolfModule extends BaseServerModule{
         // no gravity, because topdown
         this._world = Planck.World({});
 
+        this.physicsModules.push(new Attractor(this._world));
+        this.physicsModules.push(new GoalChecker(this._world));
+
+        this._world.on("begin-contact",()=>{
+            console.log(...arguments);
+        });
 
         // add before update event, so that all received updates from the clients
         // can be executed before an engine-step
@@ -326,6 +335,26 @@ class MinigolfModule extends BaseServerModule{
                         type:"rectangle",
                         width: tilesize,
                         height:tilesize
+                    }
+
+                };
+                new ServerEntity(entityRaw,this._world);
+            }
+
+            if(TileMapping.getStats(mapData[i]).attractor) {
+
+                let entityRaw = {
+                    type:ENTITYDESC.GOAL.name,
+                    position:{x:x,y:y},   //TODO: set position on map start position
+                    //playerID:socket.clientData.id,
+                    isSensor:true,
+                    attractor:10,
+                    hitArea: {
+                        type:"rectangle",
+                        width: tilesize,
+                        height:tilesize
+                        /*type:"circle",
+                        radius: (tilesize / 4) - 1*/
                     }
                 };
                 new ServerEntity(entityRaw,this._world);
@@ -488,19 +517,15 @@ class MinigolfModule extends BaseServerModule{
         if(speed !== 0 && speed <= CONF.ENTITY_MIN_SPEED){
             entity.body.setLinearVelocity(new Planck.Vec2(0,0));
             speed = 0;
-            console.log("cap speed");
         }
 
-        console.log("-",speed,oldSpeed);
         if(speed !== oldSpeed){
             let modeUpdateRequired = false;
-            if(speed === 0){    // it was moving, but now it is standing still
+            if(speed === 0 && oldSpeed !== 0){    // it was moving, but now it is standing still
                 modeUpdateRequired = entity.setMode("DEFAULT");
             }
 
             // if it is moving, but new speed is not zero
-            // it can happen, that old speed is not zero, when starting velocity
-            // dunno why
             if(oldSpeed === 0 && speed !== 0 ){
             //if(oldSpeed === 0 && speed !== 0 ){
                 // if(oldSpeed === 0 && speed !== 0){       // if it was not moving, but now it is moving
@@ -515,11 +540,7 @@ class MinigolfModule extends BaseServerModule{
                     {mode:entity.currentMode}
                 );
             }
-
-            console.log("mode",entity.currentMode);
         }
-
-        console.log("---------------");
     }
 
     /**

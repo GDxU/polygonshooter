@@ -52,9 +52,9 @@ class Util {
      * @returns {string}
      */
     static getRandomColor() {
-        var letters = '0123456789ABCDEF';
-        var color = '0x';
-        for (var i = 0; i < 6; i++) {
+        const letters = '0123456789ABCDEF';
+        let color = '0x';
+        for (let i = 0; i < 6; i++) {
             color += letters[Math.floor(Math.random() * 16)];
         }
         return color;
@@ -144,7 +144,7 @@ class Util {
     };
 
     static arrayContains(a, obj) {
-    for (var i = 0; i < a.length; i++) {
+    for (let i = 0; i < a.length; i++) {
         if (a[i] === obj) {
             return true;
         }
@@ -216,6 +216,19 @@ class Util {
 
     static pythagorean(a,b){
         return Math.sqrt((a*a)+(b*b));
+    }
+
+    static normalizeVector(x,y){
+        const dist = Math.sqrt( (x * x)+(y * y));
+
+        return {
+            x: x * (1.0 / dist),
+            y: y * (1.0 / dist)
+        }
+    }
+
+    static vectorLength(x,y){
+        return Math.sqrt(x*x,y*y);
     }
 
     /**

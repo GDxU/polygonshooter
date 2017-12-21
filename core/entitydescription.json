@@ -5,14 +5,14 @@
       "texture": "ball"
     },
     "fixture":{
-      "friction": 0.1,
+      "friction": 0.0001,
       "restitution": 0.99,
       "density": 1,
       "userData": "PLAYER"
     },
     "body":{
       "linearDamping": 1.5,
-      "angularDamping": 1
+      "angularDamping": 0
     }
   },
   "NONE":{
@@ -24,9 +24,16 @@
   "WALL":{
     "name":"WALL",
     "fixture":{
-      "friction": 0.1,
-      "restitution": 0.9,
+      "friction":0.0001,
+      "restitution": 0.99,
       "userData": "WALL"
+    }
+  },
+  "GOAL":{
+    "name":"GOAL",
+    "fixture":{
+      "userData": "GOAL",
+      "isSensor":true
     }
   }
 }

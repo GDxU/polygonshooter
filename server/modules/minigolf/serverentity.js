@@ -67,6 +67,13 @@ class ServerEntity{
         this._body.ENTITY_ID = this.id;
         this._body.entity = this;
 
+        if(data.attractor){
+            this.attractor = data.attractor;
+        }
+
+       /* if(data.isSensor) {
+            this._body.setSensor(true);
+        }*/
         /**
          * name of the current mode
          * @type {string}

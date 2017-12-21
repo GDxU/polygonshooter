@@ -18,7 +18,7 @@ class TileMapping {
             "grass": {},
             "wall": {"isBlocking":true},
             "tee": {},
-            "hole": {},
+            "hole": {"attractor":10},
             "sand": {}
         };
     }
