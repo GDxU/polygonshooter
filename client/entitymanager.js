@@ -116,6 +116,13 @@ class EntityManager extends PIXI.Container{
         }
     }
 
+    onPlayerScored(evt){
+        let player = this.players[evt.playerId];
+        if(!player) return;
+
+        this.removeChild(player); // TODO: kleiner lerpen
+    }
+
     updatePlayerColor(evt){
         if(!evt || !evt.colorUpdates){
             console.error("no color updates passed");

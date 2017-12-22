@@ -50,7 +50,6 @@ class GoalChecker extends BasePhysicsModule{
                 continue;
             }
 
-
             let from = item.getPosition();
             let to = item.attractedBy.body.getPosition();
             //(x1, y1, x2, y2) {
@@ -63,7 +62,6 @@ class GoalChecker extends BasePhysicsModule{
                 item.isRemoved = true;
                 this.emit(EVT_GOAL,item);
             }
-
         }
     }
 }

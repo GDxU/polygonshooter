@@ -61,12 +61,16 @@ class MinigolfModule extends BaseServerModule{
 
         /**
          * contains all entities (not map)
-         * @type {{}}
+         * @type {{entityId:entity}}
          */
         this.gameEntities={};
 
         this.previousEntityValues={};
 
+        /**
+         *
+         * @type {{clientId:entity}}
+         */
         this.players = {};
 
         this.listeningUpdates = [  //TODO: von events json
@@ -245,6 +249,7 @@ class MinigolfModule extends BaseServerModule{
         // remove client on disconnect
 
         let player = this.players[socket.clientId];
+        if(!player)return;
         // delete the references of the player
        /* delete this.players[socket.clientId];
         delete this.gameEntities[player.clientId];*/
@@ -259,6 +264,36 @@ class MinigolfModule extends BaseServerModule{
         }
 
         //this.removeEntity(player.id);
+    }
+
+    removeBody(body){
+        this._world.destroyBody(body);
+
+        if(body.entity){
+            if(this.gameEntities[body.entity.id])
+                delete this.gameEntities[body.entity.id];
+
+            if(this.players[body.entity.clientId])
+                delete this.players[body.entity.clientId];
+
+            body.entity.isAddedToWorld = false;
+        }
+        body.isRemoved = true;
+    }
+
+    _onGoal(body){
+        if(!body.entity || !body.entity.clientId) return;
+
+        this.removeBody(body);
+
+        this._broadcast(    // if the change was valid, send everyone the new information
+            COM.PROTOCOL.MODULES.MINIGOLF.TO_CLIENT.PLAYER_SCORED,
+            COM.createEvent(
+                this.SERVER_ID,
+                {playerId:body.entity.clientId}
+            )
+        );
+
     }
 
     /**
@@ -291,7 +326,11 @@ class MinigolfModule extends BaseServerModule{
         this._world = Planck.World({});
 
         this.physicsModules.push(new Attractor(this._world));
-        this.physicsModules.push(new GoalChecker(this._world));
+
+        //TODO: add event on remove,
+        let goalChecker = new GoalChecker(this._world);
+        goalChecker.on("onGoal",this._onGoal.bind(this));
+        this.physicsModules.push(goalChecker);
 
         this._world.on("begin-contact",()=>{
             console.log(...arguments);
@@ -394,6 +433,8 @@ class MinigolfModule extends BaseServerModule{
     _swing(id,velocity){
         console.log("swing",id,velocity);
         let player = this.players[id];
+
+        if(!player)return;
 
         if(player.currentMode === MODES.DEFAULT) {
             //player.velocity = velocity;

@@ -65,7 +65,10 @@ module.exports =
                 MODULE_NAME:"MINIGOLF",
                 TO_CLIENT: {
                     MAP: "MAP",
-                    ENTITY_ADDED:"ENTITY_ADDED"
+                    ENTITY_ADDED:"ENTITY_ADDED",
+                    ENTITY_REMOVED:"ENTITY_REMOVED",
+                    PLAYER_SCORED:"PLAYER_SCORED",
+                    PLAYER_SWINGED:"PLAYER_SWING"
                 },
                 TO_SERVER: {
                 },
